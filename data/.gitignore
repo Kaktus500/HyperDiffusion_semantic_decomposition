@@ -1,0 +1,7 @@
+*.mtl
+*.json
+*.solid.binvox
+*.surface.binvox
+*.jpeg
+*.zip
+*.obj.npy

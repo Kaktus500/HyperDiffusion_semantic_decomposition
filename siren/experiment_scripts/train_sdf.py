@@ -64,11 +64,12 @@ def main(cfg: DictConfig):
     root_path = os.path.join(cfg.logging_root, cfg.exp_name)
     mesh_jitter = cfg.mesh_jitter
     multip_cfg = cfg.multi_process
-    files = [
-        file
-        for file in os.listdir(cfg.dataset_folder)
-        if file not in ["train_split.lst", "test_split.lst", "val_split.lst"]
-    ]
+    # files = [
+    #     file
+    #     for file in os.listdir(cfg.dataset_folder)
+    #     if file not in ["train_split.lst", "test_split.lst", "val_split.lst"]
+    # ]
+    files = ["1a74b169a76e651ebc0909d98a1ff2b4.obj"]
     if multip_cfg.enabled:
         if multip_cfg.ignore_first:
             files = files[1:]  # Ignoring the first one
