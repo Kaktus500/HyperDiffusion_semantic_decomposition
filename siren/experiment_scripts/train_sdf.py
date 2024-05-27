@@ -69,7 +69,7 @@ def main(cfg: DictConfig):
     #     for file in os.listdir(cfg.dataset_folder)
     #     if file not in ["train_split.lst", "test_split.lst", "val_split.lst"]
     # ]
-    files = ["1a74b169a76e651ebc0909d98a1ff2b4.obj"]
+    files = ["5274742871cef1aca8cba409c4409ba9.obj"]
     if multip_cfg.enabled:
         if multip_cfg.ignore_first:
             files = files[1:]  # Ignoring the first one
