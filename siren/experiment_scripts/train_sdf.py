@@ -1,7 +1,8 @@
-"""Reproduces Sec. 4.2 in main paper and Sec. 4 in Supplement.
-"""
+"""Reproduces Sec. 4.2 in main paper and Sec. 4 in Supplement."""
+
 import copy
 import os
+
 # Enable import from parent package
 import sys
 from functools import partial
@@ -68,9 +69,10 @@ def main(cfg: DictConfig):
     # files = [
     #     file
     #     for file in os.listdir(cfg.dataset_folder)
-    #     if file not in ["train_split.lst", "test_split.lst", "val_split.lst"]
+    #     if file not in ["train_split.lst", "test_split.lst", "val_split.lst"] and file.endswith(".obj")
     # ]
-    files = ["5274742871cef1aca8cba409c4409ba9.obj"]
+    # files = ["chair_seat_filled.obj", "chair_arm_filled.obj"]
+    files = ["chair_arm_filled.obj"]
     if multip_cfg.enabled:
         if multip_cfg.ignore_first:
             files = files[1:]  # Ignoring the first one
