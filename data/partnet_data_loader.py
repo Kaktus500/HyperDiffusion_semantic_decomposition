@@ -2,10 +2,11 @@
 Load PartNet data and parse it into semantic labels, based on PartNet repo.
 """
 
-import os
 import sys
-from typing import Dict, List, Union
 from pathlib import Path
+from typing import Dict, List, Union
+
+import click
 
 sys.path.append(
     str(Path(__file__).resolve().parent.parent)
@@ -155,14 +156,27 @@ def normalize_pc(pts):
     return pts
 
 
+@click.command()
+@click.argument("data_folder_path", type=Path)
+@click.argument("category", type=str)
+@click.argument(
+    "split",
+    type=str,
+)
+@click.option(
+    "--n_shapes",
+    type=int,
+    default=None,
+    help="Number of shapes per .json file. If None, all shapes are extracted into one file.",
+)
 def extract_ins_seg_annotations(
-    data_folder_path: Path, category: str, split: str, n_shapes: Union[int, None]
+    data_folder_path: Path, category: str, split: str, n_shapes: Union[int, None] = None
 ) -> None:
     """Extract instance segementation annotations from the given category and split of the PartNet dataset.
 
     Args:
         category (str): Category of the PartNet dataset.
-        split (str): Split of the PartNet dataset.
+        split (str): Split of the PartNet dataset has to be one of train, val, test.
         n_shapes (int | None): Number of shapes per .json file. If None, all shapes are extracted into one file.
     """
     in_fn = f"stats/train_val_test_split/{category}.{split}.json"
@@ -213,5 +227,5 @@ def extract_ins_seg_annotations(
 
 
 if __name__ == "__main__":
-    data_folder_path = Path("/home/pauldelseith/dataset_storage/partnet") / "data_v0"
-    extract_ins_seg_annotations(data_folder_path, "Chair", "train", 1000)
+    # data_folder_path = Path("/home/pauldelseith/dataset_storage/partnet") / "data_v0"
+    extract_ins_seg_annotations()
