@@ -108,12 +108,15 @@ def generate_shapes_pcs(
 
 if __name__ == "__main__":
     category = "Chair"
+    split = "train"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
+    file_names = np.genfromtxt(dataset_dir / f"{split}_split.lst", dtype="str")
     part_ids = [
         file.name
         for file in dataset_dir.iterdir()
         if file.is_dir()
         and file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
+        and file.name in file_names
     ]
     shape_name = "chair"
     on_surface_points = 2048
