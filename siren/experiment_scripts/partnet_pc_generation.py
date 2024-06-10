@@ -1,15 +1,15 @@
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 sys.path.append(
     str(Path(__file__).resolve().parent.parent.parent)
 )  # TODO: Fix this for debug ...
-from siren import dataio
-from helpers import HYPER_DIFF_DIR
-import trimesh
-import numpy as np
 import igl
+import numpy as np
+import trimesh
+
+from helpers import HYPER_DIFF_DIR
 
 
 def generate_normalized_shape_pc(
@@ -35,9 +35,9 @@ def generate_normalized_shape_pc(
         mesh.vertices -= vertices_mean
         mesh.vertices *= vertices_scaling
 
-    total_points = cfg["n_points"]  # 100000
-    n_points_uniform = total_points  # int(total_points * 0.5)
-    n_points_surface = total_points  # total_points
+    total_points = cfg["n_points"]
+    n_points_uniform = total_points
+    n_points_surface = total_points
 
     part_point_clouds: Dict[str, np.ndarray] = {}
     for part_name, mesh in mesh_parts.items():
@@ -66,8 +66,42 @@ def generate_normalized_shape_pc(
     return part_point_clouds
 
 
+def generate_shapes_pcs(
+    category: str, shape_ids: List[str], cfg: Dict[str, Any]
+) -> None:
+    """Geneerate point clouds for list of given shapes.
+
+    Applies shape level normalization before point cloud extraction.
+    """
+    for shape_id in shape_ids:
+        mesh_parts_dir = (
+            HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category / shape_id
+        )
+        if not mesh_parts_dir.exists() and not mesh_parts_dir.is_dir():
+            raise FileNotFoundError(f"Shape directory not found: {mesh_parts_dir}")
+        mesh_parts: Dict[str, trimesh.Trimesh] = {}
+        for mesh_path in mesh_parts_dir.iterdir():
+            mesh = trimesh.load_mesh(mesh_path)
+            mesh_name = mesh_path.name
+            mesh_parts[mesh_name] = mesh
+        normalized_mesh_parts = generate_normalized_shape_pc(mesh_parts, cfg)
+        pc_out_dir = (
+            HYPER_DIFF_DIR
+            / "data"
+            / "partnet"
+            / "sem_seg_pc"
+            / f"{category}_{cfg['n_points']}_pc_{cfg['output_type']}_in_out_{cfg['in_out']}"
+            / shape_id
+        )
+        pc_out_dir.mkdir(parents=True, exist_ok=True)
+        for part_name, pc in normalized_mesh_parts.items():
+            pc_path = pc_out_dir / f"{part_name}.npy"
+            np.save(pc_path, pc)
+            print(f"Saved point cloud for part {part_name} to {pc_path}")
+
+
 if __name__ == "__main__":
-    part_id = "35508"
+    part_id = "44938"
     shape_name = "chair"
     dataset_dir = HYPER_DIFF_DIR / "data" / shape_name
     mesh_parts_dir = dataset_dir / part_id / "sem_seg_parts"
@@ -81,19 +115,6 @@ if __name__ == "__main__":
         "strategy": "save_pc",
         "shape_modify": "no",
         "n_points": 100000,
+        "output_type": "occ",
     }
-    mesh_parts: Dict[str, trimesh.Trimesh] = {}
-    for mesh_path in mesh_parts_dir.iterdir():
-        mesh = trimesh.load_mesh(mesh_path)
-        mesh_name = mesh_path.name
-        mesh_parts[mesh_name] = mesh
-    normalized_mesh_parts = generate_normalized_shape_pc(mesh_parts, cfg)
-    pc_out_dir = (
-        dataset_dir.parent
-        / f"{shape_name}_{n_points}_pc_{output_type}_in_out_{cfg['in_out']}"
-    )
-    pc_out_dir.mkdir(parents=True, exist_ok=True)
-    for part_name, pc in normalized_mesh_parts.items():
-        pc_path = pc_out_dir / f"{part_name}.npy"
-        np.save(pc_path, pc)
-        print(f"Saved point cloud for part {part_name} to {pc_path}")
+    generate_shapes_pcs("Chair", [part_id], cfg)
