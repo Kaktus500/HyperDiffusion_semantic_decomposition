@@ -1,10 +1,12 @@
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple
 
 sys.path.append(
     str(Path(__file__).resolve().parent.parent.parent)
 )  # TODO: Fix this for debug ...
+import subprocess
+
 import igl
 import numpy as np
 import trimesh
@@ -13,15 +15,36 @@ from progressbar import ProgressBar
 from helpers import HYPER_DIFF_DIR
 
 
+def sample_occupancy_grid_from_mesh(
+    mesh: trimesh.Trimesh, n_points_uniform: int, n_points_surface: int
+) -> np.ndarray:
+    """Sample points from 3D space to approximate an occupancy grid."""
+    points_uniform = np.random.uniform(-0.5, 0.5, size=(n_points_uniform, 3))
+    points_surface = mesh.sample(n_points_surface)
+    points_surface += 0.01 * np.random.randn(n_points_surface, 3)
+    points = np.concatenate([points_surface, points_uniform], axis=0)
+    inside_surface_values = igl.fast_winding_number_for_meshes(
+        mesh.vertices, mesh.faces, points
+    )
+    thresh = 0.5
+    occupancies_winding = np.piecewise(
+        inside_surface_values,
+        [inside_surface_values < thresh, inside_surface_values >= thresh],
+        [0, 1],
+    )
+    occupancies = occupancies_winding[..., None]
+    return occupancies
+
+
 def generate_normalized_shape_pc(
-    mesh_parts: Dict[str, trimesh.Trimesh],
+    mesh_parts: Dict[str, Tuple[trimesh.Trimesh, Path]],
     cfg: Dict[str, Any],
 ) -> Union[Dict[str, np.ndarray], None]:
     """Generate a normalized point cloud for the parts of a shape."""
 
     combined_mesh = trimesh.Trimesh()
     for mesh in mesh_parts.values():
-        combined_mesh += mesh
+        combined_mesh += mesh[0]
 
     # compute normalization metrics
     vertices = combined_mesh.vertices
@@ -33,8 +56,8 @@ def generate_normalized_shape_pc(
 
     # normalize meshes
     for part_name, mesh in mesh_parts.items():
-        mesh.vertices -= vertices_mean
-        mesh.vertices *= vertices_scaling
+        mesh[0].vertices -= vertices_mean
+        mesh[0].vertices *= vertices_scaling
 
     total_points = cfg["n_points"]
     n_points_uniform = total_points
@@ -43,11 +66,11 @@ def generate_normalized_shape_pc(
     part_point_clouds: Dict[str, np.ndarray] = {}
     for part_name, mesh in mesh_parts.items():
         points_uniform = np.random.uniform(-0.5, 0.5, size=(n_points_uniform, 3))
-        points_surface = mesh.sample(n_points_surface)
+        points_surface = mesh[0].sample(n_points_surface)
         points_surface += 0.01 * np.random.randn(n_points_surface, 3)
         points = np.concatenate([points_surface, points_uniform], axis=0)
         inside_surface_values = igl.fast_winding_number_for_meshes(
-            mesh.vertices, mesh.faces, points
+            mesh[0].vertices, mesh[0].faces, points
         )
         thresh = 0.5
         occupancies_winding = np.piecewise(
@@ -56,6 +79,29 @@ def generate_normalized_shape_pc(
             [0, 1],
         )
         occupancies = occupancies_winding[..., None]
+        if occupancies.sum() < 10000:
+            command = [
+                "~/ManifoldPlus/build/manifold",
+                "--input",
+                f"{mesh[1]}",
+                "--output",
+                f"{mesh[1].parent / mesh[1].stem}_manifold.obj",
+                "--depth",
+                "8",
+            ]
+            try:
+                result = subprocess.run(command, shell=True, text=True, check=True)
+            except subprocess.CalledProcessError as exc:
+                print("Not enough points inside the mesh, there is likely a problem.")
+                return None
+            manifold_mesh = trimesh.load(
+                f"{mesh[1].parent / mesh[1].stem}_manifold.obj"
+            )
+            manifold_mesh.vertices -= vertices_mean
+            manifold_mesh.vertices *= vertices_scaling
+            occupancies = sample_occupancy_grid_from_mesh(
+                manifold_mesh, n_points_uniform, n_points_surface
+            )
         if occupancies.sum() < 1000:
             print("Not enough points inside the mesh, there is likely a problem.")
             return None
@@ -91,7 +137,7 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
         for mesh_path in mesh_parts_dir.glob(f"{shape_id}_*.obj"):
             mesh = trimesh.load_mesh(mesh_path)
             mesh_name = mesh_path.name
-            mesh_parts[mesh_name] = mesh
+            mesh_parts[mesh_name] = (mesh, mesh_path)
         normalized_mesh_parts = generate_normalized_shape_pc(mesh_parts, cfg)
         if normalized_mesh_parts is None:
             print(f"Skipping shape {shape_id} due to insufficient points.")
