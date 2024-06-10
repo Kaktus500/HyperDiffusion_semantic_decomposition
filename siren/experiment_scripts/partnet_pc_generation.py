@@ -110,7 +110,7 @@ if __name__ == "__main__":
     category = "Chair"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     part_ids = [
-        file
+        file.name
         for file in dataset_dir.iterdir()
         if file.is_dir()
         and file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
