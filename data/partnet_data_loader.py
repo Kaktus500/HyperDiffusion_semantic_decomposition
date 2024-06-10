@@ -185,7 +185,7 @@ def extract_ins_seg_annotations(
 
         # once finished with all samples from input file or specified number of samples reached, store results
         if k == n_shapes or item_id + 1 == len(item_list):
-            out_dir = f"ins_seg_h5/{category}"
+            out_dir = f"ins_seg/{category}"
             out_dir = HYPER_DIFF_DIR / "data" / "partnet" / out_dir
             out_dir.mkdir(parents=True, exist_ok=True)
             out_fn_prefix = out_dir / f"{split}-{t:02d}"

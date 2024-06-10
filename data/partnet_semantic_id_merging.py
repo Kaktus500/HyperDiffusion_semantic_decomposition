@@ -58,7 +58,7 @@ def merge_ins_seg_categories(category: str, split: str) -> None:
                     continue
                 segmentation_label = part_components[1]
                 second_level_segmentation_ids[segmentation_label].add(
-                    (part["leaf_id_list"][0], part["leaf_obj_list"][0])
+                    (part["leaf_id_list"][0], tuple(part["leaf_obj_list"]))
                 )
             if second_level_segmentation_ids:
                 for key, value in second_level_segmentation_ids.items():
