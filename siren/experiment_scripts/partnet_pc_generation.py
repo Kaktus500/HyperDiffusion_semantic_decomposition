@@ -55,13 +55,11 @@ def generate_normalized_shape_pc(
             [0, 1],
         )
         occupancies = occupancies_winding[..., None]
-        print(points.shape, occupancies.shape, occupancies.sum())
         if occupancies.sum() < 1000:
             print("Not enough points inside the mesh, there is likely a problem.")
             return None
         point_cloud = points
         point_cloud = np.hstack((point_cloud, occupancies))
-        print(point_cloud.shape, points.shape, occupancies.shape)
         coords = point_cloud[:, :3]
         normals = point_cloud[:, 3:]
         point_cloud_xyz = np.hstack((coords, normals))
@@ -103,7 +101,6 @@ def generate_shapes_pcs(
         for part_name, pc in normalized_mesh_parts.items():
             pc_path = pc_out_dir / f"{part_name}.npy"
             np.save(pc_path, pc)
-            print(f"Saved point cloud for part {part_name} to {pc_path}")
 
 
 if __name__ == "__main__":
