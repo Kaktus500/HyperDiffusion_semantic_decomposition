@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 sys.path.append(
     str(Path(__file__).resolve().parent.parent.parent)
@@ -15,7 +15,7 @@ from helpers import HYPER_DIFF_DIR
 def generate_normalized_shape_pc(
     mesh_parts: Dict[str, trimesh.Trimesh],
     cfg: Dict[str, Any],
-) -> Dict[str, np.ndarray]:
+) -> Union[Dict[str, np.ndarray], None]:
     """Generate a normalized point cloud for the parts of a shape."""
 
     combined_mesh = trimesh.Trimesh()
@@ -56,6 +56,9 @@ def generate_normalized_shape_pc(
         )
         occupancies = occupancies_winding[..., None]
         print(points.shape, occupancies.shape, occupancies.sum())
+        if occupancies.sum() < 1000:
+            print("Not enough points inside the mesh, there is likely a problem.")
+            return None
         point_cloud = points
         point_cloud = np.hstack((point_cloud, occupancies))
         print(point_cloud.shape, points.shape, occupancies.shape)
@@ -85,6 +88,9 @@ def generate_shapes_pcs(
             mesh_name = mesh_path.name
             mesh_parts[mesh_name] = mesh
         normalized_mesh_parts = generate_normalized_shape_pc(mesh_parts, cfg)
+        if normalized_mesh_parts is None:
+            print(f"Skipping shape {shape_id} due to insufficient points.")
+            continue
         pc_out_dir = (
             HYPER_DIFF_DIR
             / "data"
@@ -101,10 +107,15 @@ def generate_shapes_pcs(
 
 
 if __name__ == "__main__":
-    part_id = "44938"
+    category = "Chair"
+    dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
+    part_ids = [
+        file
+        for file in dataset_dir.iterdir()
+        if file.is_dir()
+        and file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
+    ]
     shape_name = "chair"
-    dataset_dir = HYPER_DIFF_DIR / "data" / shape_name
-    mesh_parts_dir = dataset_dir / part_id / "sem_seg_parts"
     on_surface_points = 2048
     output_type = "occ"
     n_points = 100000
@@ -117,4 +128,4 @@ if __name__ == "__main__":
         "n_points": 100000,
         "output_type": "occ",
     }
-    generate_shapes_pcs("Chair", [part_id], cfg)
+    generate_shapes_pcs("Chair", part_ids, cfg)
