@@ -18,25 +18,7 @@ import h5py
 import numpy as np
 from progressbar import ProgressBar
 
-from data.geometry_utils import *
 from helpers import HYPER_DIFF_DIR
-
-# in_cat = sys.argv[1]
-# split = sys.argv[2]
-# in_cat = "Chair_small"
-# split = "train"
-# print(in_cat, split)
-
-# in_fn = f"stats/train_val_test_split/{in_cat}.{split}.json"
-# in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
-# with open(in_fn, "r") as fin:
-#     item_list = json.load(fin)
-# in_fn = f"stats/merging_hierarchy_mapping/{in_cat}.txt"
-# in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
-# with open(in_fn, "r") as fin:
-#     node_mapping = {
-#         d.rstrip().split()[0]: d.rstrip().split()[1] for d in fin.readlines()
-#     }
 
 
 def load_file(fn):
