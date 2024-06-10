@@ -8,6 +8,7 @@ sys.path.append(
 import igl
 import numpy as np
 import trimesh
+from progressbar import ProgressBar
 
 from helpers import HYPER_DIFF_DIR
 
@@ -74,6 +75,15 @@ def generate_shapes_pcs(
 
     Applies shape level normalization before point cloud extraction.
     """
+    pc_out_dir = (
+        HYPER_DIFF_DIR
+        / "data"
+        / "partnet"
+        / "sem_seg_pc"
+        / f"{category}_{cfg['n_points']}_pc_{cfg['output_type']}_in_out_{cfg['in_out']}"
+    )
+    pc_out_dir.mkdir(parents=True, exist_ok=True)
+    progress_bar = ProgressBar(maxval=len(shape_ids)).start()
     for shape_id in shape_ids:
         mesh_parts_dir = (
             HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category / shape_id
@@ -89,18 +99,11 @@ def generate_shapes_pcs(
         if normalized_mesh_parts is None:
             print(f"Skipping shape {shape_id} due to insufficient points.")
             continue
-        pc_out_dir = (
-            HYPER_DIFF_DIR
-            / "data"
-            / "partnet"
-            / "sem_seg_pc"
-            / f"{category}_{cfg['n_points']}_pc_{cfg['output_type']}_in_out_{cfg['in_out']}"
-            / shape_id
-        )
-        pc_out_dir.mkdir(parents=True, exist_ok=True)
         for part_name, pc in normalized_mesh_parts.items():
-            pc_path = pc_out_dir / f"{part_name}.npy"
+            pc_path = pc_out_dir / f"{shape_id}_{part_name}.npy"
             np.save(pc_path, pc)
+        progress_bar.update(progress_bar.currval + 1)
+    progress_bar.finish()
 
 
 if __name__ == "__main__":
