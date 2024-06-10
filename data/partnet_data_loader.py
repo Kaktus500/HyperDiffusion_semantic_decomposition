@@ -4,6 +4,7 @@ Load PartNet data and parse it into semantic labels, based on PartNet repo.
 
 import os
 import sys
+from typing import Dict, List, Union
 from pathlib import Path
 
 sys.path.append(
@@ -21,20 +22,20 @@ from helpers import HYPER_DIFF_DIR
 
 # in_cat = sys.argv[1]
 # split = sys.argv[2]
-in_cat = "Chair_small"
-split = "train"
-print(in_cat, split)
+# in_cat = "Chair_small"
+# split = "train"
+# print(in_cat, split)
 
-in_fn = f"stats/train_val_test_split/{in_cat}.{split}.json"
-in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
-with open(in_fn, "r") as fin:
-    item_list = json.load(fin)
-in_fn = f"stats/merging_hierarchy_mapping/{in_cat}.txt"
-in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
-with open(in_fn, "r") as fin:
-    node_mapping = {
-        d.rstrip().split()[0]: d.rstrip().split()[1] for d in fin.readlines()
-    }
+# in_fn = f"stats/train_val_test_split/{in_cat}.{split}.json"
+# in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
+# with open(in_fn, "r") as fin:
+#     item_list = json.load(fin)
+# in_fn = f"stats/merging_hierarchy_mapping/{in_cat}.txt"
+# in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
+# with open(in_fn, "r") as fin:
+#     node_mapping = {
+#         d.rstrip().split()[0]: d.rstrip().split()[1] for d in fin.readlines()
+#     }
 
 
 def load_file(fn):
@@ -98,7 +99,7 @@ def get_all_leaf_ids(record):
     elif "objs" in record.keys():
         return [record["id"]]
     else:
-        print("ERROR: no children key nor objs key! %s %s" % (in_cat, in_anno))
+        print("ERROR: no children key nor objs key!")
         exit(1)
 
 
@@ -111,12 +112,11 @@ def get_all_leaf_objs(record):
     elif "objs" in record.keys():
         return record["objs"]
     else:
-        print("ERROR: no children key nor objs key! %s %s" % (in_cat, in_anno))
+        print("ERROR: no children key nor objs key!")
         exit(1)
 
 
-def traverse(record, cur_name):
-    global new_result
+def traverse(record, cur_name, new_result: List, node_mapping: Dict):
     if len(cur_name) == 0:
         cur_name = record["name"]
     else:
@@ -134,7 +134,7 @@ def traverse(record, cur_name):
         )
     if "children" in record.keys():
         for item in record["children"]:
-            traverse(item, cur_name)
+            traverse(item, cur_name, new_result, node_mapping)
 
 
 def normalize_pc(pts):
@@ -155,73 +155,63 @@ def normalize_pc(pts):
     return pts
 
 
-if __name__ == "__main__":
-    n_shape = 1024
-    n_point = 10000
+def extract_ins_seg_annotations(
+    data_folder_path: Path, category: str, split: str, n_shapes: Union[int, None]
+) -> None:
+    """Extract instance segementation annotations from the given category and split of the PartNet dataset.
 
-    batch_pts = np.zeros((n_shape, n_point, 3), dtype=np.float32)
-    batch_nor = np.zeros((n_shape, n_point, 3), dtype=np.float32)
-    batch_rgb = np.zeros((n_shape, n_point, 3), dtype=np.uint8)
-    batch_opacity = np.zeros((n_shape, n_point), dtype=np.float32)
-    batch_label = np.zeros((n_shape, n_point), dtype=np.int32)
+    Args:
+        category (str): Category of the PartNet dataset.
+        split (str): Split of the PartNet dataset.
+        n_shapes (int | None): Number of shapes per .json file. If None, all shapes are extracted into one file.
+    """
+    in_fn = f"stats/train_val_test_split/{category}.{split}.json"
+    in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
+    with open(in_fn, "r") as fin:
+        item_list = json.load(fin)
+    in_fn = f"stats/merging_hierarchy_mapping/{category}.txt"
+    in_fn = HYPER_DIFF_DIR / "data" / "partnet" / in_fn
+    with open(in_fn, "r") as fin:
+        node_mapping = {
+            d.rstrip().split()[0]: d.rstrip().split()[1] for d in fin.readlines()
+        }
+
     batch_record = []
 
-    bar = ProgressBar()
-    k = 0
     t = 0
-    for item_id in bar(range(len(item_list))):
-        item = item_list[item_id]
-
-        in_fn = (
-            f"{item['anno_id']}/point_sample/sample-points-all-pts-nor-rgba-10000.txt"
-        )
-        in_fn = HYPER_DIFF_DIR / "data" / "chair" / in_fn
-        assert os.path.exists(in_fn)
+    k = 0
+    progress_bar = ProgressBar(maxval=len(item_list)).start()
+    for item_id, item in enumerate((item_list)):
         in_res_fn = f"{item['anno_id']}/result.json"
-        in_res_fn = HYPER_DIFF_DIR / "data" / "chair" / in_res_fn
-        assert os.path.exists(in_res_fn)
-        in_label_fn = (
-            f"{item['anno_id']}/point_sample/sample-points-all-label-10000.txt"
-        )
-        in_label_fn = HYPER_DIFF_DIR / "data" / "chair" / in_label_fn
-        assert os.path.exists(in_label_fn)
-
-        pts, nor, rgb, opacity = load_file(in_fn)
-        pts = normalize_pc(pts)
-        old_label = load_label(in_label_fn)
+        in_res_fn = data_folder_path / in_res_fn
+        if not in_res_fn.exists():
+            print(f"File {in_res_fn} does not exist, skipping!")
+            continue
 
         with open(in_res_fn, "r") as fin:
             data = json.load(fin)
         new_result = []
-        traverse(data[0], "")
+        traverse(data[0], "", new_result, node_mapping)
 
         new_record = copy.deepcopy(item)
         new_record["ins_seg"] = new_result
-
-        batch_pts[k, ...] = pts
-        batch_nor[k, ...] = nor
-        batch_rgb[k, ...] = rgb
-        batch_opacity[k, ...] = opacity
-        batch_label[k, :] = old_label
         batch_record.append(new_record)
+        progress_bar.update(item_id + 1)
         k += 1
 
         # once finished with all samples from input file or specified number of samples reached, store results
-        if k == n_shape or item_id + 1 == len(item_list):
-            out_dir = f"ins_seg_h5/{in_cat}"
+        if k == n_shapes or item_id + 1 == len(item_list):
+            out_dir = f"ins_seg_h5/{category}"
             out_dir = HYPER_DIFF_DIR / "data" / "partnet" / out_dir
-            if not out_dir.is_dir():
-                os.mkdir(out_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
             out_fn_prefix = out_dir / f"{split}-{t:02d}"
-            save_h5(
-                str(out_fn_prefix) + ".h5",
-                batch_pts[:k, ...],
-                batch_nor[:k, ...],
-                batch_rgb[:k, ...],
-                batch_opacity[:k, ...],
-                batch_label[:k, ...],
-            )
             save_json(str(out_fn_prefix) + ".json", batch_record)
             t += 1
             k = 0
             batch_record = []
+    progress_bar.finish()
+
+
+if __name__ == "__main__":
+    data_folder_path = Path("/home/pauldelseith/dataset_storage/partnet") / "data_v0"
+    extract_ins_seg_annotations(data_folder_path, "Chair", "train", 1000)
