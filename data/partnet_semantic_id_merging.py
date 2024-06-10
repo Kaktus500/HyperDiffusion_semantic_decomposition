@@ -23,9 +23,20 @@ def merge_ins_seg_categories(category: str, split: str) -> None:
     """
     ins_seg_dir = HYPER_DIFF_DIR / "data" / "partnet" / "ins_seg" / category
     sem_seg_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg" / category
-    for annotation_file_path in ins_seg_dir.iterdir():
-        if str(annotation_file_path.name).split("-")[0] != split:
-            continue
+    if not ins_seg_dir.is_dir():
+        raise FileNotFoundError(
+            f"Instance segmentation directory not found: {ins_seg_dir}"
+        )
+    if not sem_seg_dir.is_dir():
+        raise FileNotFoundError(
+            f"Semantic segmentation directory not found: {sem_seg_dir}"
+        )
+    if not list(ins_seg_dir.glob(f"{split}-*.json")):
+        print(
+            f"No instance segmentations found for the given category and split: {category}, {split}"
+        )
+        return
+    for annotation_file_path in ins_seg_dir.glob(f"{split}-*.json"):
         index = str(annotation_file_path.name).split("-")[1].split(".")[0]
         with open(annotation_file_path, "r") as fin:
             annotations = json.load(fin)
