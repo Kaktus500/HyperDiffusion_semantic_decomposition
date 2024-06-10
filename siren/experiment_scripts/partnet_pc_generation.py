@@ -68,9 +68,7 @@ def generate_normalized_shape_pc(
     return part_point_clouds
 
 
-def generate_shapes_pcs(
-    category: str, shape_ids: List[str], cfg: Dict[str, Any]
-) -> None:
+def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) -> None:
     """Geneerate point clouds for list of given shapes.
 
     Applies shape level normalization before point cloud extraction.
@@ -79,19 +77,18 @@ def generate_shapes_pcs(
         HYPER_DIFF_DIR
         / "data"
         / "partnet"
-        / "sem_seg_pc"
+        / "sem_seg_meshes"
         / f"{category}_{cfg['n_points']}_pc_{cfg['output_type']}_in_out_{cfg['in_out']}"
     )
     pc_out_dir.mkdir(parents=True, exist_ok=True)
+    # extract unique shape ids from parts list
+    shape_ids = set([part.split("_")[0] for part in parts])
+    shape_ids = list(shape_ids)
     progress_bar = ProgressBar(maxval=len(shape_ids)).start()
+    mesh_parts_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     for shape_id in shape_ids:
-        mesh_parts_dir = (
-            HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category / shape_id
-        )
-        if not mesh_parts_dir.exists() and not mesh_parts_dir.is_dir():
-            raise FileNotFoundError(f"Shape directory not found: {mesh_parts_dir}")
         mesh_parts: Dict[str, trimesh.Trimesh] = {}
-        for mesh_path in mesh_parts_dir.iterdir():
+        for mesh_path in mesh_parts_dir.glob(f"{shape_id}_*.obj"):
             mesh = trimesh.load_mesh(mesh_path)
             mesh_name = mesh_path.name
             mesh_parts[mesh_name] = mesh
@@ -100,7 +97,7 @@ def generate_shapes_pcs(
             print(f"Skipping shape {shape_id} due to insufficient points.")
             continue
         for part_name, pc in normalized_mesh_parts.items():
-            pc_path = pc_out_dir / f"{shape_id}_{part_name}.npy"
+            pc_path = pc_out_dir / f"{part_name}.npy"
             np.save(pc_path, pc)
         progress_bar.update(progress_bar.currval + 1)
     progress_bar.finish()
@@ -111,14 +108,13 @@ if __name__ == "__main__":
     split = "train"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     file_names = np.genfromtxt(dataset_dir / f"{split}_split.lst", dtype="str")
-    part_ids = [
+    parts = [
         file.name
         for file in dataset_dir.iterdir()
-        if file.is_dir()
-        and file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
+        if file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
         and file.name in file_names
     ]
-    shape_name = "chair"
+    shape_name = "Chair"
     on_surface_points = 2048
     output_type = "occ"
     n_points = 100000
@@ -131,4 +127,4 @@ if __name__ == "__main__":
         "n_points": 100000,
         "output_type": "occ",
     }
-    generate_shapes_pcs("Chair", part_ids, cfg)
+    generate_shapes_pcs(category, parts, cfg)

@@ -48,9 +48,8 @@ def sem_seg_mesh_merging(
             ).start()
         loop_progress = 0
         merge_failed = False
+        mesh_output_dir.mkdir(parents=True, exist_ok=True)
         for item_id, item in shape_segementation_id_mapping.items():
-            part_output_dir = mesh_output_dir / item_id
-            part_output_dir.mkdir(parents=True, exist_ok=True)
             for part_name, part in item.items():
                 merged_mesh = trimesh.Trimesh()
                 for leaf_id, leaf_objs in part:
@@ -77,10 +76,13 @@ def sem_seg_mesh_merging(
                             maxholesize=no_vertexes // 20, selfintersection=False
                         )
                         iteration += 1
-                    ms.save_current_mesh(str(part_output_dir / f"{part_name}.obj"))
-                except PyMeshLabException as e:
-                    if part_output_dir.exists() and part_output_dir.is_dir():
-                        shutil.rmtree(part_output_dir)
+                    ms.save_current_mesh(
+                        str(mesh_output_dir / f"{item_id}_{part_name}.obj")
+                    )
+                except PyMeshLabException:
+                    # delete previously generated files with this id
+                    for file in mesh_output_dir.glob(f"{item_id}_*.obj"):
+                        file.unlink()
                     merge_failed = True
                     break
             ms.clear()
