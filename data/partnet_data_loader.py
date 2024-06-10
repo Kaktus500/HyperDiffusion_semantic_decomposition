@@ -156,19 +156,6 @@ def normalize_pc(pts):
     return pts
 
 
-@click.command()
-@click.argument("data_folder_path", type=Path)
-@click.argument("category", type=str)
-@click.argument(
-    "split",
-    type=str,
-)
-@click.option(
-    "--n_shapes",
-    type=int,
-    default=None,
-    help="Number of shapes per .json file. If None, all shapes are extracted into one file.",
-)
 def extract_ins_seg_annotations(
     data_folder_path: Path, category: str, split: str, n_shapes: Union[int, None] = None
 ) -> None:
@@ -191,6 +178,7 @@ def extract_ins_seg_annotations(
         }
 
     batch_record = []
+    out_dir = None
 
     t = 0
     k = 0
@@ -224,8 +212,36 @@ def extract_ins_seg_annotations(
             k = 0
             batch_record = []
     progress_bar.finish()
+    print("Instance segmentation annotations extracted.")
+    print(f"Data stored in: {out_dir}")
+
+
+@click.command()
+@click.argument("data_folder_path", type=Path)
+@click.argument("category", type=str)
+@click.argument(
+    "split",
+    type=str,
+)
+@click.option(
+    "--n_shapes",
+    type=int,
+    default=None,
+    help="Number of shapes per .json file. If None, all shapes are extracted into one file.",
+)
+def cli_extract_ins_seg_annotations(
+    data_folder_path: Path, category: str, split: str, n_shapes: Union[int, None] = None
+) -> None:
+    """Extract instance segementation annotations from the given category and split of the PartNet dataset.
+
+    Args:
+        category (str): Category of the PartNet dataset.
+        split (str): Split of the PartNet dataset has to be one of train, val, test.
+        n_shapes (int | None): Number of shapes per .json file. If None, all shapes are extracted into one file.
+    """
+    extract_ins_seg_annotations(data_folder_path, category, split, n_shapes)
 
 
 if __name__ == "__main__":
     # data_folder_path = Path("/home/pauldelseith/dataset_storage/partnet") / "data_v0"
-    extract_ins_seg_annotations()
+    cli_extract_ins_seg_annotations()
