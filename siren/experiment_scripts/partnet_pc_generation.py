@@ -82,7 +82,7 @@ def generate_normalized_shape_pc(
         # check whether a reasonable number of points inside the shape was found
         if occupancies.sum() < 10000:
             # try fixing the shape using ManifoldPlus
-            command = f"~/ManifoldPlus/build/manifold --input {mesh[1]} --output {mesh[1].parent / mesh[1].stem}_manifold.obj --depth 8"
+            command = f"~/ManifoldPlus/build/manifold --input {mesh[1]} --output {mesh[1]} --depth 8"
             try:
                 subprocess.run(
                     command,
@@ -94,9 +94,7 @@ def generate_normalized_shape_pc(
                 )
             except subprocess.CalledProcessError:
                 return None
-            manifold_mesh = trimesh.load(
-                f"{mesh[1].parent / mesh[1].stem}_manifold.obj"
-            )
+            manifold_mesh = trimesh.load(mesh[1])
             manifold_mesh.vertices -= vertices_mean
             manifold_mesh.vertices *= vertices_scaling
             points, occupancies = sample_occupancy_grid_from_mesh(

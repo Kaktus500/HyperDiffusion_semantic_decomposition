@@ -10,7 +10,6 @@ sys.path.append(
 )  # TODO: Fix this for debug ...
 from siren import sdf_meshing
 from siren.experiment_scripts.test_sdf import SDFDecoder
-from helpers import HYPER_DIFF_DIR
 
 
 def generate_mesh_from_sdf(
