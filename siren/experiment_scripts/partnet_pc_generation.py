@@ -17,7 +17,7 @@ from helpers import HYPER_DIFF_DIR
 
 def sample_occupancy_grid_from_mesh(
     mesh: trimesh.Trimesh, n_points_uniform: int, n_points_surface: int
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Sample points from 3D space to approximate an occupancy grid."""
     points_uniform = np.random.uniform(-0.5, 0.5, size=(n_points_uniform, 3))
     points_surface = mesh.sample(n_points_surface)
@@ -33,7 +33,7 @@ def sample_occupancy_grid_from_mesh(
         [0, 1],
     )
     occupancies = occupancies_winding[..., None]
-    return occupancies
+    return points, occupancies
 
 
 def generate_normalized_shape_pc(
@@ -80,18 +80,18 @@ def generate_normalized_shape_pc(
         )
         occupancies = occupancies_winding[..., None]
         if occupancies.sum() < 10000:
-            command = [
-                "~/ManifoldPlus/build/manifold",
-                "--input",
-                f"{mesh[1]}",
-                "--output",
-                f"{mesh[1].parent / mesh[1].stem}_manifold.obj",
-                "--depth",
-                "8",
-            ]
+            command = f"~/ManifoldPlus/build/manifold --input {mesh[1]} --output {mesh[1].parent / mesh[1].stem}_manifold.obj --depth 8"
+
             try:
-                result = subprocess.run(command, shell=True, text=True, check=True)
-            except subprocess.CalledProcessError as exc:
+                subprocess.run(
+                    command,
+                    shell=True,
+                    text=True,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+            except subprocess.CalledProcessError:
                 print("Not enough points inside the mesh, there is likely a problem.")
                 return None
             manifold_mesh = trimesh.load(
@@ -99,10 +99,10 @@ def generate_normalized_shape_pc(
             )
             manifold_mesh.vertices -= vertices_mean
             manifold_mesh.vertices *= vertices_scaling
-            occupancies = sample_occupancy_grid_from_mesh(
+            points, occupancies = sample_occupancy_grid_from_mesh(
                 manifold_mesh, n_points_uniform, n_points_surface
             )
-        if occupancies.sum() < 1000:
+        if occupancies.sum() < 5000:
             print("Not enough points inside the mesh, there is likely a problem.")
             return None
         point_cloud = points
@@ -153,7 +153,10 @@ if __name__ == "__main__":
     category = "Chair"
     split = "train"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
-    file_names = np.genfromtxt(dataset_dir / f"{split}_split.lst", dtype="str")
+    file_names = np.genfromtxt(
+        dataset_dir / f"{split}_split.lst",
+        dtype="str",
+    )
     parts = [
         file.name
         for file in dataset_dir.iterdir()
