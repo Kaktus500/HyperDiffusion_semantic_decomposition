@@ -72,7 +72,12 @@ def main(cfg: DictConfig):
     #     if file not in ["train_split.lst", "test_split.lst", "val_split.lst"] and file.endswith(".obj")
     # ]
     # files = ["chair_seat_filled.obj", "chair_arm_filled.obj"]
-    files = ["chair_arm_filled.obj"]
+    files = [
+        "chair_arm_filled.obj",
+        "chair_base_filled.obj",
+        "chair_seat_filled.obj",
+        "chair_back_filled.obj",
+    ]
     if multip_cfg.enabled:
         if multip_cfg.ignore_first:
             files = files[1:]  # Ignoring the first one
