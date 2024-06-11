@@ -11,6 +11,30 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false
+        },
+        {
+            "name": "Train sdf",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config-name",
+                "overfit_plane"
+            ]
+        },
+        {
+            "name": "sdf save pc",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config-name=overfit_plane",
+                "strategy=save_pc"
+            ]
         }
     ]
 }
