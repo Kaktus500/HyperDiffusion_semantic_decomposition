@@ -26,9 +26,9 @@ class SDFDecoder(torch.nn.Module):
         # Define the model.
         if model_type == "mlp_3d":
             if "mlp_config" in cfg:
-                self.model = MLP3D_Split(**cfg.mlp_config)
+                self.model = MLP3D(**cfg.mlp_config)
             else:
-                self.model = MLP3D_Split(**cfg)
+                self.model = MLP3D(**cfg)
 
         if checkpoint_path is not None:
             self.model.load_state_dict(torch.load(checkpoint_path))

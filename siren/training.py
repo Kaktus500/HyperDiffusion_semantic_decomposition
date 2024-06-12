@@ -32,9 +32,23 @@ def train(
     filename=None,
     cfg=None,
 ):
-    model.layers[2].layers[1].weight.requires_grad = False
-    model.layers[2].layers[2].weight.requires_grad = False
-    model.layers[2].layers[3].weight.requires_grad = False
+    # Assuming model.layers is a list of layers in your model.
+    model_layers = model.layers
+
+    mask = [[] for _ in range(2)]  # Change range to 2 for 2 parts
+    for part in range(2):  # Change range to 2 for 2 parts
+        for i, layer in enumerate(model_layers):
+            weight_shape = layer.weight.shape
+            if i == 1 or i == 2:
+                # Initialize the mask with zeros
+                mask_matrix = torch.zeros_like(layer.weight)
+                # Set the specific quadrant to ones
+                mask_matrix[part * (weight_shape[0] // 2) : (part + 1) * (weight_shape[0] // 2),
+                            part * (weight_shape[1] // 2) : (part + 1) * (weight_shape[1] // 2)] = 1  # Adjust slicing for 2 parts
+                mask[part].append(mask_matrix)
+            else:
+                # Initialize the mask with ones
+                mask[part].append(torch.ones_like(layer.weight))
 
     optim = torch.optim.Adam(lr=lr, params=model.parameters())
     if cfg.scheduler.type == "step":
@@ -92,12 +106,19 @@ def train(
             #                np.array(train_losses))
             total_loss, total_items = 0, 0
 
-            for step, (model_input, gt) in enumerate(train_dataloader):
+            for step, (model_input, gt, labels) in enumerate(train_dataloader):
                 start_time = time.time()
 
                 model_input = {key: value.cuda() for key, value in model_input.items()}
                 gt = {key: value.cuda() for key, value in gt.items()}
 
+                p = {key: value.cuda() for key, value in labels.items()}
+                p = p['labels'][0,0]
+                original_params = []
+                for i, layer in enumerate(model.layers):
+                    original_params.append(layer.weight.clone())
+                    layer.weight.data = layer.weight.data * mask[p][i]
+                
                 if double_precision:
                     model_input = {
                         key: value.double() for key, value in model_input.items()
@@ -158,7 +179,15 @@ def train(
                                 model.parameters(), max_norm=clip_grad
                             )
 
+                    for i, layer in enumerate(model.layers):
+                        layer.weight.data = original_params[i]
+                    
+                    # mask grad
+                    for i, layer in enumerate(model.layers):
+                        layer.weight.grad = layer.weight.grad * mask[p][i]
                     optim.step()
+
+                
 
                 pbar.update(1)
                 # wandb.log({"loss": train_loss})
@@ -236,8 +265,6 @@ def train(
                 model.state_dict(),
                 os.path.join(checkpoints_dir, f"{filename}_model_final.pth"),
             )
-        # np.savetxt(os.path.join(checkpoints_dir, 'train_losses_final.txt'),
-        #            np.array(train_losses))
 
 
 class LinearDecaySchedule:
