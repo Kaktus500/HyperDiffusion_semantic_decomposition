@@ -42,6 +42,25 @@ def sample_occupancy_grid_from_mesh(
     return points, occupancies
 
 
+def normalize_mesh(
+    mesh: trimesh.Trimesh,
+) -> Tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
+    """Normalize a mesh to have zero mean and unit variance.
+
+    Args:
+        mesh: The mesh to normalize.
+    """
+    vertices = mesh.vertices
+    vertices_mean = np.mean(vertices, axis=0, keepdims=True)
+    vertices -= vertices_mean
+    vertices_max = np.amax(vertices)
+    vertices_min = np.amin(vertices)
+    vertices_scaling = 0.5 * 0.95 / (max(abs(vertices_min), abs(vertices_max)))
+    vertices *= vertices_scaling
+    mesh.vertices = vertices
+    return mesh, vertices_mean, vertices_scaling
+
+
 def generate_normalized_shape_pc(
     mesh_parts: Dict[str, Tuple[trimesh.Trimesh, Path]],
     cfg: Dict[str, Any],

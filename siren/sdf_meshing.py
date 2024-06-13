@@ -1,5 +1,4 @@
-"""From the DeepSDF repository https://github.com/facebookresearch/DeepSDF
-"""
+"""From the DeepSDF repository https://github.com/facebookresearch/DeepSDF"""
 #!/usr/bin/env python3
 
 import logging
@@ -244,7 +243,10 @@ def convert_sdf_samples_to_ply(
     )
     try:
         verts, faces, normals, values = skimage.measure.marching_cubes_lewiner(
-            numpy_3d_sdf_tensor, level=level, spacing=[voxel_size] * 3
+            numpy_3d_sdf_tensor,
+            level=level,
+            spacing=[voxel_size] * 3,
+            gradient_direction="ascent",
         )
     except Exception as e:
         print(e)

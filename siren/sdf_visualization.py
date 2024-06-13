@@ -29,6 +29,7 @@ def generate_mesh_from_sdf(
         N=256,
         level=0 if cfg.output_type == "occ" and cfg.out_act == "sigmoid" else 0,
     )
+    # multiply sdf by -1 to get the correct normal direction or do direction in lewiner
 
 
 @click.command()
