@@ -138,6 +138,8 @@ def train(
 
                 p = {key: value.cuda() for key, value in labels.items()}
                 p = p['labels'][0,0]
+                if np.random.uniform() < 0.5:  # 50% chance
+                    p = 2
                 # original_params = []
                 # for i, layer in enumerate(model.layers):
                 #     original_params.append(layer.weight.clone())

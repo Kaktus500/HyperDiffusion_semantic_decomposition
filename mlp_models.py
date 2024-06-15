@@ -74,10 +74,14 @@ class MLP3D(nn.Module):
             log_sampling=True,
             periodic_fns=[torch.sin, torch.cos],
         )
+
+        ########################## Define the mask
         self.mask = []
         for i in range(2): 
             self.mask.append(torch.zeros((1,1,128)).to(device='cuda'))
             self.mask[i][:,:,i*64:(i+1)*64] = 1
+        self.mask.append(torch.ones((1,1,128)).to(device='cuda'))
+
         self.layers = nn.ModuleList([])
         self.output_type = output_type
         self.use_leaky_relu = use_leaky_relu
@@ -96,6 +100,8 @@ class MLP3D(nn.Module):
         for i, layer in enumerate(self.layers[:-1]):
             x = layer(x)
             x = F.leaky_relu(x) if self.use_leaky_relu else F.relu(x)
+
+            ############################### Apply mask
             if freeze:
                 x = x * self.mask[p]
         x = self.layers[-1](x)
@@ -108,7 +114,8 @@ class MLP3D(nn.Module):
         elif self.output_type == "logits":
             x = x
         else:
-            raise f"This self.output_type ({self.output_type}) not implemented"
+            pass
+            # raise f"This self.output_type ({self.output_type}) not implemented"
         x = dist.Bernoulli(logits=x).logits
 
         return {"model_in": coords_org, "model_out": x}
