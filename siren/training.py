@@ -35,20 +35,44 @@ def train(
     # Assuming model.layers is a list of layers in your model.
     model_layers = model.layers
 
-    mask = [[] for _ in range(2)]  # Change range to 2 for 2 parts
+    mask_weight = [[] for _ in range(2)]  # Change range to 2 for 2 parts
+    mask_bias = [[] for _ in range(2)]  # Change range to 2 for 2 parts
     for part in range(2):  # Change range to 2 for 2 parts
         for i, layer in enumerate(model_layers):
             weight_shape = layer.weight.shape
-            if i == 1 or i == 2:
+            if i == 0:
+                # for the first layer, set the half of the weights to zero
+                mask_matrix = torch.zeros_like(layer.weight)
+                mask_matrix[part * (weight_shape[0] // 2) : (part + 1) * (weight_shape[0] // 2), :] = 1
+                mask_weight[part].append(mask_matrix)
+    
+                mask_vec = torch.zeros_like(layer.bias)
+                mask_vec[part * (weight_shape[0] // 2) : (part + 1) * (weight_shape[0] // 2)] = 1
+                mask_bias[part].append(mask_bias)
+            elif i == 1 or i == 2:
                 # Initialize the mask with zeros
                 mask_matrix = torch.zeros_like(layer.weight)
                 # Set the specific quadrant to ones
                 mask_matrix[part * (weight_shape[0] // 2) : (part + 1) * (weight_shape[0] // 2),
                             part * (weight_shape[1] // 2) : (part + 1) * (weight_shape[1] // 2)] = 1  # Adjust slicing for 2 parts
-                mask[part].append(mask_matrix)
+                mask_weight[part].append(mask_matrix)
+
+                mask_vec = torch.zeros_like(layer.bias)
+                mask_vec[part * (weight_shape[0] // 2) : (part + 1) * (weight_shape[0] // 2)] = 1
+                mask_bias[part].append(mask_vec)
+            elif i == 3:
+                # for the last layer, set the half of the weights to zero
+                mask_matrix = torch.zeros_like(layer.weight)
+                mask_matrix[:, part * (weight_shape[1] // 2) : (part + 1) * (weight_shape[1] // 2)] = 1
+                mask_weight[part].append(mask_matrix)
             else:
                 # Initialize the mask with ones
-                mask[part].append(torch.ones_like(layer.weight))
+                mask_weight[part].append(torch.ones_like(layer.weight))
+
+    # set model weights between the two parts to zero
+    # for i, layer in enumerate(model_layers):
+    #     if i == 1 or i == 2:
+    #         layer.weight.data = layer.weight.data * (mask_weight[0][i] + mask_weight[1][i])
 
     optim = torch.optim.Adam(lr=lr, params=model.parameters())
     if cfg.scheduler.type == "step":
@@ -114,10 +138,10 @@ def train(
 
                 p = {key: value.cuda() for key, value in labels.items()}
                 p = p['labels'][0,0]
-                original_params = []
-                for i, layer in enumerate(model.layers):
-                    original_params.append(layer.weight.clone())
-                    layer.weight.data = layer.weight.data * mask[p][i]
+                # original_params = []
+                # for i, layer in enumerate(model.layers):
+                #     original_params.append(layer.weight.clone())
+                #     layer.weight.data = layer.weight.data * mask_weight[p][i]
                 
                 if double_precision:
                     model_input = {
@@ -139,7 +163,7 @@ def train(
 
                     optim.step(closure)
 
-                model_output = model(model_input)
+                model_output = model(model_input, True, p)
                 losses = loss_fn(model_output, gt, model)
 
                 train_loss = 0.0
@@ -179,12 +203,14 @@ def train(
                                 model.parameters(), max_norm=clip_grad
                             )
 
-                    for i, layer in enumerate(model.layers):
-                        layer.weight.data = original_params[i]
+                    # # before the forward and backward pass the disabled weights were set to zero
+                    # # now we set them back to their original values
+                    # for i, layer in enumerate(model.layers):
+                    #     layer.weight.data = original_params[i]
                     
-                    # mask grad
-                    for i, layer in enumerate(model.layers):
-                        layer.weight.grad = layer.weight.grad * mask[p][i]
+                    # # mask grad to only update the weights of the current semantic part
+                    # for i, layer in enumerate(model.layers):
+                    #     layer.weight.grad = layer.weight.grad * mask_weight[p][i]
                     optim.step()
 
                 

@@ -36,7 +36,7 @@ class SDFDecoder(torch.nn.Module):
 
     def forward(self, coords):
         model_in = {"coords": coords}
-        return self.model(model_in)["model_out"]
+        return self.model(model_in, False, 0)["model_out"]
 
 
 def main():

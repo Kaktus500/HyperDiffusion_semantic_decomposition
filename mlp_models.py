@@ -74,6 +74,10 @@ class MLP3D(nn.Module):
             log_sampling=True,
             periodic_fns=[torch.sin, torch.cos],
         )
+        self.mask = []
+        for i in range(2): 
+            self.mask.append(torch.zeros((1,1,128)).to(device='cuda'))
+            self.mask[i][:,:,i*64:(i+1)*64] = 1
         self.layers = nn.ModuleList([])
         self.output_type = output_type
         self.use_leaky_relu = use_leaky_relu
@@ -85,13 +89,15 @@ class MLP3D(nn.Module):
             )
         self.layers.append(nn.Linear(hidden_neurons[-1], out_size, bias=use_bias))
 
-    def forward(self, model_input):
+    def forward(self, model_input, freeze, p):
         coords_org = model_input["coords"].clone().detach().requires_grad_(True)
         x = coords_org
         x = self.embedder.embed(x)
         for i, layer in enumerate(self.layers[:-1]):
             x = layer(x)
             x = F.leaky_relu(x) if self.use_leaky_relu else F.relu(x)
+            if freeze:
+                x = x * self.mask[p]
         x = self.layers[-1](x)
 
         if self.output_type == "occ":
