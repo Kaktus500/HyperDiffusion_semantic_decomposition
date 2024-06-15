@@ -68,7 +68,7 @@ def main(cfg: DictConfig):
 
 
     ############################## Here we load an object for each sample that contains a list of class labels ##############################
-    # e.g. files_labeled = {"chair": ["base", "back"], "table": ["top", "leg"]}
+    # e.g. files_labeled = {"chair1": ["base", "back"], "chair2": ["base", "back"]}
 
     files_labeled = {}
     for file in files:
