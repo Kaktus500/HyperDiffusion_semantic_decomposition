@@ -32,7 +32,13 @@ def generate_mesh_from_sdf(
     # multiply sdf by -1 to get the correct normal direction or do direction in lewiner
 
 
-@click.command()
+@click.group()
+def cli():
+    """CLI group for mesh generation from SDF."""
+    pass
+
+
+@cli.command()
 @click.argument(
     "checkpoint_path",
     type=click.Path(exists=True, path_type=Path),
@@ -61,5 +67,46 @@ def cli_generate_mesh_from_sdf(
     generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg)
 
 
+@cli.command()
+@click.argument(
+    "checkpoint_folder_path",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.argument(
+    "output_folder_path",
+    type=click.Path(path_type=Path),
+)
+@click.argument(
+    "config_name",
+    type=str,
+)
+@click.option(
+    "--filter_string",
+    type=str,
+    default="*",
+    help="Filter string to select specific checkpoint files.",
+)
+def cli_generate_meshes_from_sdf(
+    checkpoint_folder_path: Path,
+    output_folder_path: Path,
+    config_name: str,
+    filter_string: str,
+) -> None:
+    """CLI function to generate meshes for multiple trained SDF models.
+
+    Args:
+        checkpoint_path: Path to the checkpoint file.
+        output_file_path: Path to the output file.
+        config_name: Configuration parameters for the mesh generation.
+        filter_string: Filter string to select specific checkpoint files.
+    """
+    config_path_relative = Path("../configs/overfitting_configs")
+    with initialize(version_base=None, config_path=str(config_path_relative)):
+        cfg = compose(config_name=config_name)
+    for checkpoint_path in checkpoint_folder_path.glob(filter_string):
+        output_file_path = output_folder_path / f"{checkpoint_path.stem}"
+        generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg)
+
+
 if __name__ == "__main__":
-    cli_generate_mesh_from_sdf()
+    cli()
