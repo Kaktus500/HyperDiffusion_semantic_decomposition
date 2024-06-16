@@ -125,6 +125,13 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
             shapes_skipped += 1
             continue
         for part_name, pc in normalized_mesh_parts.items():
+            colors = np.zeros((pc.shape[0], 4), dtype=np.uint8)
+            colors[:, 3] = 1
+            colors[pc[:, 3] == 1, 0] = 255
+            colors[pc[:, 3] == 0, 1] = 255
+            trimesh.points.PointCloud(pc[:, :3], colors=colors).export(
+                pc_out_dir / f"{part_name}.obj"
+            )
             pc_path = pc_out_dir / f"{part_name}.npy"
             np.save(pc_path, pc)
         progress_bar.update(progress_bar.currval + 1)
