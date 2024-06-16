@@ -39,9 +39,8 @@ def compute_quality_metrics(
         sdf_voxel = sdf_mesh.voxelized(0.01)
 
         # compare count of occupied voxels to check whether the shape is good
-        # figure out what voxel pitch is good
-        # make sure coordinate systems are alligned
 
+        # filled difference value of 0.05 is a first good threshold for filtering results
         filled_difference = abs(
             ground_truth_voxel.filled_count - sdf_voxel.filled_count
         )
