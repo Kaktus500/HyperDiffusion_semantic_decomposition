@@ -4,7 +4,6 @@ in_out: True
 augment_on_the_fly: False
 mesh_jitter: False
 dataset_folder: "data/partnet/sem_seg_meshes/Chair"
-# dataset_folder: "data/chair"
 wandb_dir: .
 batch_size: 2048
 lr: 1e-2
