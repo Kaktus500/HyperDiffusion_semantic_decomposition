@@ -8,6 +8,8 @@ from omegaconf import DictConfig
 sys.path.append(
     str(Path(__file__).resolve().parent.parent)
 )  # TODO: Fix this for debug ...
+from progressbar import ProgressBar
+
 from siren import sdf_meshing
 from siren.experiment_scripts.test_sdf import SDFDecoder
 
@@ -103,9 +105,14 @@ def cli_generate_meshes_from_sdf(
     config_path_relative = Path("../configs/overfitting_configs")
     with initialize(version_base=None, config_path=str(config_path_relative)):
         cfg = compose(config_name=config_name)
+    progress_bar = ProgressBar(
+        maxval=len(list(checkpoint_folder_path.glob(filter_string)))
+    ).start()
     for checkpoint_path in checkpoint_folder_path.glob(filter_string):
         output_file_path = output_folder_path / f"{checkpoint_path.stem}"
         generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg)
+        progress_bar.update(progress_bar.currval + 1)
+    progress_bar.finish()
 
 
 if __name__ == "__main__":

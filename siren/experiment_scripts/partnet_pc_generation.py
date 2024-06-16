@@ -93,7 +93,9 @@ def generate_shape_pc(
     return part_point_clouds
 
 
-def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) -> None:
+def generate_shapes_pcs(
+    category: str, parts: List[str], cfg: Dict[str, Any]
+) -> List[str]:
     """Geneerate point clouds for list of given shapes.
 
     Applies shape level normalization before point cloud extraction.
@@ -112,6 +114,7 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
     progress_bar = ProgressBar(maxval=len(shape_ids)).start()
     mesh_parts_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     shapes_skipped = 0
+    good_mesh_ids: List[str] = []
     # iterate over shapes and generate normalized point clouds
     for shape_id in shape_ids:
         mesh_parts: Dict[str, trimesh.Trimesh] = {}
@@ -124,13 +127,14 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
             progress_bar.update(progress_bar.currval + 1)
             shapes_skipped += 1
             continue
+        good_mesh_ids.append(shape_id)
         for part_name, pc in normalized_mesh_parts.items():
             colors = np.zeros((pc.shape[0], 4), dtype=np.uint8)
             colors[:, 3] = 1
             colors[pc[:, 3] == 1, 0] = 255
             colors[pc[:, 3] == 0, 1] = 255
             trimesh.points.PointCloud(pc[:, :3], colors=colors).export(
-                pc_out_dir / f"{part_name}.obj"
+                pc_out_dir / f"{part_name}_pc.obj"
             )
             pc_path = pc_out_dir / f"{part_name}.npy"
             np.save(pc_path, pc)
@@ -139,6 +143,10 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
     print(f"Skipped {shapes_skipped} shapes")
     print(f"Generated point clouds for {len(shape_ids) - shapes_skipped} shapes")
     print(f"Point clouds saved at {pc_out_dir}")
+    with open(pc_out_dir / "good_mesh_ids.lst", "w") as f:
+        for mesh_id in good_mesh_ids:
+            f.write(f"{mesh_id}\n")
+    return good_mesh_ids
 
 
 if __name__ == "__main__":
