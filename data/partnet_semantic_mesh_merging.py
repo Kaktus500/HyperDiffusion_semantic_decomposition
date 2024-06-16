@@ -6,7 +6,6 @@ sys.path.append(
     str(Path(__file__).resolve().parent.parent)
 )  # TODO: Fix this for debug ...
 import json
-import shutil
 
 import click
 import numpy as np

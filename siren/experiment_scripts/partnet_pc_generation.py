@@ -61,7 +61,7 @@ def normalize_mesh(
     return mesh, vertices_mean, vertices_scaling
 
 
-def generate_normalized_shape_pc(
+def generate_shape_pc(
     mesh_parts: Dict[str, Tuple[trimesh.Trimesh, Path]],
     cfg: Dict[str, Any],
 ) -> Union[Dict[str, np.ndarray], None]:
@@ -71,23 +71,6 @@ def generate_normalized_shape_pc(
         mesh_parts: A dictionary mapping part names to their corresponding meshes.
         cfg: A dictionary containing the configuration parameters for the point cloud generation.
     """
-
-    combined_mesh = trimesh.Trimesh()
-    for mesh in mesh_parts.values():
-        combined_mesh += mesh[0]
-
-    # compute normalization metrics
-    vertices = combined_mesh.vertices
-    vertices_mean = np.mean(vertices, axis=0, keepdims=True)
-    vertices -= vertices_mean
-    vertices_max = np.amax(vertices)
-    vertices_min = np.amin(vertices)
-    vertices_scaling = 0.5 * 0.95 / (max(abs(vertices_min), abs(vertices_max)))
-
-    # normalize meshes
-    for part_name, mesh in mesh_parts.items():
-        mesh[0].vertices -= vertices_mean
-        mesh[0].vertices *= vertices_scaling
 
     total_points = cfg["n_points"]
     n_points_uniform = total_points
@@ -114,8 +97,6 @@ def generate_normalized_shape_pc(
             except subprocess.CalledProcessError:
                 return None
             manifold_mesh = trimesh.load(mesh[1])
-            manifold_mesh.vertices -= vertices_mean
-            manifold_mesh.vertices *= vertices_scaling
             points, occupancies = sample_occupancy_grid_from_mesh(
                 manifold_mesh, n_points_uniform, n_points_surface
             )
@@ -157,7 +138,7 @@ def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any]) ->
             mesh = trimesh.load_mesh(mesh_path)
             mesh_name = mesh_path.name
             mesh_parts[mesh_name] = (mesh, mesh_path)
-        normalized_mesh_parts = generate_normalized_shape_pc(mesh_parts, cfg)
+        normalized_mesh_parts = generate_shape_pc(mesh_parts, cfg)
         if normalized_mesh_parts is None:
             progress_bar.update(progress_bar.currval + 1)
             shapes_skipped += 1
