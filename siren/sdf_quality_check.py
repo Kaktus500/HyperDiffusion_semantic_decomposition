@@ -11,6 +11,7 @@ import trimesh
 from helpers import HYPER_DIFF_DIR
 from siren.experiment_scripts.partnet_pc_generation import normalize_mesh
 
+
 ply_folder_path = (
     HYPER_DIFF_DIR
     / "siren"
@@ -18,9 +19,8 @@ ply_folder_path = (
     / "logs"
     / "chair_39767_manifold_ply"
 )
-
 category = "Chair"
-shape_id = 2239
+shape_id = 2803
 
 ground_truth_shape_folder = (
     HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category

@@ -9,6 +9,7 @@ import json
 import shutil
 
 import click
+import numpy as np
 import pymeshlab
 import trimesh
 from progressbar import ProgressBar
@@ -16,6 +17,25 @@ from pymeshlab import Percentage
 from pymeshlab.pmeshlab import PyMeshLabException
 
 from helpers import HYPER_DIFF_DIR
+
+
+def normalize_mesh(
+    mesh: trimesh.Trimesh,
+) -> Tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
+    """Normalize a mesh to have zero mean and unit variance.
+
+    Args:
+        mesh: The mesh to normalize.
+    """
+    vertices = mesh.vertices
+    vertices_mean = np.mean(vertices, axis=0, keepdims=True)
+    vertices -= vertices_mean
+    vertices_max = np.amax(vertices)
+    vertices_min = np.amin(vertices)
+    vertices_scaling = 0.5 * 0.95 / (max(abs(vertices_min), abs(vertices_max)))
+    vertices *= vertices_scaling
+    mesh.vertices = vertices
+    return mesh, vertices_mean, vertices_scaling
 
 
 def sem_seg_mesh_merging(
@@ -89,6 +109,7 @@ def sem_seg_mesh_merging(
             loop_progress += 1
             merged_meshes += 1
             if not merge_failed:
+                sem_seg_mesh_normalization(category, item_id)
                 meshes_successfully_merged += 1
             merge_failed = False
             progress_bar.update(loop_progress)
@@ -98,6 +119,21 @@ def sem_seg_mesh_merging(
         if merged_meshes == n_shapes:
             break
     print(f"Merged {meshes_successfully_merged} meshes, stored in {mesh_output_dir}")
+
+
+def sem_seg_mesh_normalization(category: str, item_id: str) -> None:
+    """Normalize sementically segmented meshes."""
+    mesh_output_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
+    shape_mesh = trimesh.Trimesh()
+    for part_file in mesh_output_dir.glob(f"{item_id}_*.obj"):
+        mesh = trimesh.load_mesh(part_file)
+        shape_mesh += mesh
+    _, vertices_mean, vertices_scaling = normalize_mesh(shape_mesh)
+    for part_file in mesh_output_dir.glob(f"{item_id}_*.obj"):
+        mesh = trimesh.load_mesh(part_file)
+        mesh.vertices -= vertices_mean
+        mesh.vertices *= vertices_scaling
+        mesh.export(file_type="obj", file_obj=part_file)
 
 
 @click.command()
