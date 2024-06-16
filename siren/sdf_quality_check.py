@@ -9,7 +9,6 @@ sys.path.append(
 import trimesh
 
 from helpers import HYPER_DIFF_DIR
-from siren.experiment_scripts.partnet_pc_generation import normalize_mesh
 
 
 ply_folder_path = (
@@ -37,9 +36,7 @@ for part in ground_truth_shape_folder.glob(f"{shape_id}_*.obj"):
     mesh = trimesh.load_mesh(part)
     ground_truth_mesh += mesh
 
-normalized_ground_truth_mesh, _, _ = normalize_mesh(ground_truth_mesh)
-
-ground_truth_voxel = normalized_ground_truth_mesh.voxelized(0.01)
+ground_truth_voxel = ground_truth_mesh.voxelized(0.01)
 sdf_voxel = complete_mesh.voxelized(0.01)
 
 # compare count of occupied voxels to check whether the shape is good
