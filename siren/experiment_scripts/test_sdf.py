@@ -34,9 +34,9 @@ class SDFDecoder(torch.nn.Module):
             self.model.load_state_dict(torch.load(checkpoint_path))
         self.model.cuda()
 
-    def forward(self, coords):
+    def forward(self, coords, freeze=False, part=0):
         model_in = {"coords": coords}
-        return self.model(model_in, False, 0)["model_out"]
+        return self.model(model_in, freeze, part)["model_out"]
 
 
 def main():

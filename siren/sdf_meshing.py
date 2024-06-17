@@ -147,6 +147,8 @@ def create_mesh(
     scale=None,
     level=0,
     time_val=-1,
+    freeze=False,
+    part=0,
 ):
     start = time.time()
     ply_filename = filename
@@ -190,7 +192,7 @@ def create_mesh(
                 )
             )
         samples[head : min(head + max_batch, num_samples), 3] = (
-            decoder(sample_subset).squeeze().detach().cpu()  # .squeeze(1)
+            decoder(sample_subset, freeze=freeze, part=part).squeeze().detach().cpu()  # .squeeze(1)
         )
         head += max_batch
 

@@ -8,6 +8,7 @@ meshes
 *.ply
 *.png
 *.jpg
+*.lst
 lightning_checkpoints
 *.ckpt
 .github/workflows

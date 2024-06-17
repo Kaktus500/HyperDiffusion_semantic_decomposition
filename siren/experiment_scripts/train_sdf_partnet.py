@@ -231,14 +231,17 @@ def main(cfg: DictConfig):
                     imgs = np.transpose(imgs, axes=(0, 3, 1, 2))
                     wandb.log({"animation": wandb.Video(imgs, fps=16)})
                 else:
-                    sdf_meshing.create_mesh(
-                        sdf_decoder,
-                        os.path.join(cfg.logging_root, f"{cfg.exp_name}_ply", filename),
-                        N=256,
-                        level=0
-                        if cfg.output_type == "occ" and cfg.out_act == "sigmoid"
-                        else 0,
-                    )
+                    for j in range(3):
+                        sdf_meshing.create_mesh(
+                            sdf_decoder,
+                            os.path.join(cfg.logging_root, f"{cfg.exp_name}_ply", f"{filename}_{j}"),
+                            N=256,
+                            level=0
+                            if cfg.output_type == "occ" and cfg.out_act == "sigmoid"
+                            else 0,
+                            freeze = True if j < 2 else False,
+                            part = j
+                        )
 
 
 if __name__ == "__main__":
