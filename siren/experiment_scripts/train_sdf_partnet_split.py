@@ -29,7 +29,7 @@ from torch.utils.data import DataLoader
 from hd_utils import render_mesh
 from mlp_models import MLP3D
 from mlp_models_split import MLP3D_Split
-from siren import dataio, loss_functions, sdf_meshing, training, utils, dataio_partnet
+from siren import dataio, loss_functions, sdf_meshing, training_partnet_split, utils, dataio_partnet
 from siren.experiment_scripts.test_sdf import SDFDecoder
 
 
@@ -145,7 +145,7 @@ def main(cfg: DictConfig):
             print("loaded")
             model.load_state_dict(first_state_dict)
 
-        training.train(
+        training_partnet_split.train(
             model=model,
             train_dataloader=dataloader,
             epochs=cfg.epochs,
