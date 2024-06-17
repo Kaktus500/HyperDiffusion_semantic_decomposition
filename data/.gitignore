@@ -5,3 +5,7 @@
 *.jpeg
 *.zip
 *.obj.npy
+partnet/*.txt
+*.obj
+chair/
+partnet/

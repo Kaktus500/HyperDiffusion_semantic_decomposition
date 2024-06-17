@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import utils
 from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau, StepLR
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from tqdm.autonotebook import tqdm
 
 
@@ -32,6 +32,14 @@ def train(
     filename=None,
     cfg=None,
 ):
+    # model.layers[1].layers[1].weight.requires_grad = False
+    # model.layers[1].layers[2].weight.requires_grad = False
+    # model.layers[1].layers[3].weight.requires_grad = False
+    
+    # model.layers[2].layers[1].weight.requires_grad = False
+    # model.layers[2].layers[2].weight.requires_grad = False
+    # model.layers[2].layers[3].weight.requires_grad = False
+
     optim = torch.optim.Adam(lr=lr, params=model.parameters())
     if cfg.scheduler.type == "step":
         scheduler = StepLR(

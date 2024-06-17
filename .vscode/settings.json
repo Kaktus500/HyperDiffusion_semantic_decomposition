@@ -1,0 +1,4 @@
+{
+    "python.analysis.exclude": ["**/node_modules", "**/__pycache__", ".git"],
+    "python.analysis.include": ["**/*.py", "**/*.ipynb"],
+}

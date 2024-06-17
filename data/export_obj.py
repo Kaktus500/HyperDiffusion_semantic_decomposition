@@ -6,7 +6,7 @@ from helpers import HYPER_DIFF_DIR
 
 if __name__ == "__main__":
     # Path to the folder containing the .obj files
-    obj_folder = HYPER_DIFF_DIR / "data" / "02691156"
+    obj_folder = HYPER_DIFF_DIR / "data" / "03001627"
     files = list(obj_folder.iterdir())
     nr_files_copied = 0
     # Iterate over all the .obj files in the obj folder
