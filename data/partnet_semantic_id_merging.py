@@ -27,10 +27,7 @@ def merge_ins_seg_categories(category: str, split: str) -> None:
         raise FileNotFoundError(
             f"Instance segmentation directory not found: {ins_seg_dir}"
         )
-    if not sem_seg_dir.is_dir():
-        raise FileNotFoundError(
-            f"Semantic segmentation directory not found: {sem_seg_dir}"
-        )
+    sem_seg_dir.mkdir(parents=True, exist_ok=True)
     if not list(ins_seg_dir.glob(f"{split}-*.json")):
         print(
             f"No instance segmentations found for the given category and split: {category}, {split}"
@@ -68,7 +65,6 @@ def merge_ins_seg_categories(category: str, split: str) -> None:
                 )
             progress_bar.update(i + 1)
         progress_bar.finish()
-        sem_seg_dir.mkdir(parents=True, exist_ok=True)
         with open(
             sem_seg_dir / f"{split}-{index}-sem_seg_ids.json",
             "w",
