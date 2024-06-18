@@ -97,20 +97,10 @@ def main(cfg: DictConfig):
     ######################################################################################################################################
 
     if multip_cfg.enabled:
-        if multip_cfg.ignore_first:
-            files = files[1:]  # Ignoring the first one
-        count = len(files)
-        per_proc_count = count // multip_cfg.n_of_parts
-        start_index = multip_cfg.part_id * per_proc_count
-        end_index = min(count, start_index + per_proc_count)
-        files = files[start_index:end_index]
         if cfg.strategy == "first_weights":
             first_state_dict = torch.load(
                 os.path.join(root_path, multip_cfg.first_weights_name)
             )
-        print(
-            f"Proc {multip_cfg.part_id} is responsible between {start_index} -> {end_index}"
-        )
 
     for i, file in enumerate(files_labeled.keys()):
         filename = file
@@ -156,7 +146,7 @@ def main(cfg: DictConfig):
         elif (
             first_state_dict is not None
             and cfg.strategy != "random"
-            and cfg.strategy != "first_weights_kl"
+            and cfg.strategy != "first_weights"
         ):
             print("loaded")
             model.load_state_dict(first_state_dict)
