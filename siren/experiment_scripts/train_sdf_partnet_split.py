@@ -1,17 +1,24 @@
 """Reproduces Sec. 4.2 in main paper and Sec. 4 in Supplement.
 """
+import sys
+from pathlib import Path
+
+sys.path.append(
+    str(Path(__file__).resolve().parent.parent.parent)
+)  # TODO: Fix this for debug ...
 import copy
 import os
+
 # Enable import from parent package
-import sys
 from functools import partial
 
 import hydra
 import torch
 import trimesh
+import wandb
 from omegaconf import DictConfig, open_dict
 
-import wandb
+from helpers import HYPER_DIFF_DIR
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(
@@ -29,7 +36,14 @@ from torch.utils.data import DataLoader
 from hd_utils import render_mesh
 from mlp_models import MLP3D
 from mlp_models_split import MLP3D_Split
-from siren import dataio, loss_functions, sdf_meshing, training_partnet_split, utils, dataio_partnet
+from siren import (
+    dataio,
+    dataio_partnet,
+    loss_functions,
+    sdf_meshing,
+    training_partnet_split,
+    utils,
+)
 from siren.experiment_scripts.test_sdf import SDFDecoder
 
 
@@ -46,7 +60,7 @@ def get_model(cfg):
 @hydra.main(
     version_base=None,
     config_path="../../configs/overfitting_configs",
-    config_name="overfit_plane",
+    config_name="overfit_chair",
 )
 def main(cfg: DictConfig):
     wandb.init(
@@ -62,9 +76,11 @@ def main(cfg: DictConfig):
     with open_dict(cfg):
         cfg.mlp_config.output_type = cfg.output_type
     curr_lr = cfg.lr
-    root_path = os.path.join(cfg.logging_root, cfg.exp_name)
+    root_path = os.path.join(str(HYPER_DIFF_DIR), cfg.logging_root, cfg.exp_name)
+    print(f"Root path {root_path}")
     multip_cfg = cfg.multi_process
-    files = os.listdir(cfg.dataset_folder)
+    dataset_folder = str(HYPER_DIFF_DIR / Path(cfg.dataset_folder))
+    files = os.listdir(dataset_folder)
 
 
     ############################## Here we load an object for each sample that contains a list of class labels ##############################
@@ -100,7 +116,7 @@ def main(cfg: DictConfig):
         filename = file
 
         sdf_dataset = dataio_partnet.PointCloud( # The dataset class is modified to include the class labels
-            cfg.dataset_folder,
+            dataset_folder,
             file,
             files_labeled[file],
             on_surface_points=cfg.batch_size,

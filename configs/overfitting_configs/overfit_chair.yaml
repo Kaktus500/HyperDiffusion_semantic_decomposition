@@ -3,7 +3,7 @@ output_type: "occ" # or sdf or occ
 in_out: True
 augment_on_the_fly: False
 mesh_jitter: False
-dataset_folder: "data/partnet/sem_seg_meshes/Chair"
+dataset_folder: "data/partnet/sem_seg_meshes/Chair_pc_split_train"
 wandb_dir: .
 batch_size: 2048
 lr: 1e-2
@@ -11,7 +11,7 @@ model_type: mlp_3d
 bayesian: False
 logging_root: 'siren/experiment_scripts/logs'
 shape_modify: 'no'
-exp_name: "chair_39767_manifold"
+exp_name: "chair_base_seat_test"
 steps_til_summary: 100
 epochs_til_ckpt: 1
 hidden_features: 128
