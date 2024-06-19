@@ -3,7 +3,7 @@ output_type: "occ" # or sdf or occ
 in_out: True
 augment_on_the_fly: False
 mesh_jitter: False
-dataset_folder: "data/partnet/sem_seg_meshes/Chair_pc_split_train"
+dataset_folder: "data/partnet/sem_seg_meshes/Chair_100000_pc_occ_in_out_True_split_0"
 wandb_dir: .
 batch_size: 2048
 lr: 1e-2

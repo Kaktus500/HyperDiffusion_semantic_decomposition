@@ -35,23 +35,4 @@ if __name__ == "__main__":
         shutil.copy(pc_folder_path / (shape_id + "_chair_seat.obj.npy"), current_folder_path / (shape_id + "_seat.obj.npy"))
         progress_bar.update(idx + 1)
     progress_bar.finish()
-    for idx, part in enumerate(pc_folder_path.glob("*_base.obj.npy")):
-        if idx == shapes_per_chunk * (current_chunk + 1):
-            current_chunk += 1
-            current_folder_path = pc_folder_path.parent / (pc_folder_name + f"_split_{current_chunk}")
-            current_folder_path.mkdir(parents=True, exist_ok=True)
-        shutil.copy(part, current_folder_path / part.name)
-        progress_bar.update(idx + 1)
-    progress_bar.finish()
-    current_chunk = 0
-    current_folder_path = pc_folder_path.parent / (pc_folder_name + f"_split_{current_chunk}")
-    print("Splitting up the seat pcs.")
-    progress_bar = ProgressBar(maxval=n_shapes).start()
-    for idx, part in enumerate(pc_folder_path.glob("*_seat.obj.npy")):
-        if idx == shapes_per_chunk * (current_chunk + 1):
-            current_chunk += 1
-            current_folder_path = pc_folder_path.parent / (pc_folder_name + f"_split_{current_chunk}")
-        shutil.copy(part, current_folder_path / part.name)
-        progress_bar.update(idx + 1)
-    progress_bar.finish()
         

@@ -146,9 +146,9 @@ def main(cfg: DictConfig):
         elif (
             first_state_dict is not None
             and cfg.strategy != "random"
-            and cfg.strategy != "first_weights"
+            and cfg.strategy != "first_weights_kl"
         ):
-            print("loaded")
+            print("Loading first state dict")
             model.load_state_dict(first_state_dict)
 
         training_partnet_split.train(
