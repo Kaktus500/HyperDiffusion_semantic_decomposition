@@ -10,6 +10,7 @@ import json
 
 import numpy as np
 import trimesh
+from progressbar import ProgressBar
 
 from helpers import HYPER_DIFF_DIR
 
@@ -20,7 +21,8 @@ def compute_quality_metrics(
     shape_ids: List[str],
 ) -> Dict[str, Dict[str, float]]:
     metrics = defaultdict(dict)
-    for shape_id in shape_ids:
+    progress_bar = ProgressBar(maxval=len(shape_ids)).start()
+    for idx, shape_id in enumerate(shape_ids):
         sdf_mesh = trimesh.Trimesh()
         for ply_file in ply_folder_path.glob(f"*{shape_id}_*.ply"):
             mesh = trimesh.load_mesh(ply_file)
@@ -51,6 +53,8 @@ def compute_quality_metrics(
         metrics[shape_id]["filled_difference_fraction"] = (
             filled_difference / ground_truth_voxel.filled_count
         )
+        progress_bar.update(idx + 1)
+    progress_bar.finish()
     return metrics
 
 
@@ -60,7 +64,7 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_39767_manifold_ply"
+        / "chair_base_seat_ply"
     )
     category = "Chair"
     shape_ids = list(ply_folder_path.glob("*.ply"))
@@ -75,7 +79,7 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_39767_manifold_ply"
+        / "chair_base_seat_ply"
         / "metrics.json"
     )
     metrics = compute_quality_metrics(

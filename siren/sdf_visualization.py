@@ -15,7 +15,8 @@ from siren.experiment_scripts.test_sdf import SDFDecoder
 
 
 def generate_mesh_from_sdf(
-    checkpoint_path: Path, output_file_path: Path, cfg: DictConfig
+    checkpoint_path: Path, output_file_path: Path, cfg: DictConfig, *,
+    split_sdf: bool = False
 ) -> None:
     sdf_decoder = SDFDecoder(
         cfg.model_type,
@@ -25,13 +26,30 @@ def generate_mesh_from_sdf(
     )
     if output_file_path.parent.is_dir() is False:
         raise ValueError(f"Output directory {output_file_path.parent} does not exist.")
-    sdf_meshing.create_mesh(
-        sdf_decoder,
-        str(output_file_path),
-        N=256,
-        level=0 if cfg.output_type == "occ" and cfg.out_act == "sigmoid" else 0,
-    )
-    # multiply sdf by -1 to get the correct normal direction or do direction in lewiner
+    if split_sdf:
+        split_sdf_create_mesh(sdf_decoder, output_file_path, cfg)
+    else:
+        # multiply sdf by -1 to get the correct normal direction or do direction in lewiner
+        sdf_meshing.create_mesh(
+            sdf_decoder,
+            str(output_file_path),
+            N=256,
+            level=0 if cfg.output_type == "occ" and cfg.out_act == "sigmoid" else 0,
+        )
+
+def split_sdf_create_mesh(
+        sdf_decoder: SDFDecoder, output_file_path: Path, cfg: DictConfig
+) -> None:
+    for j in range(3):
+        sdf_meshing.create_mesh(sdf_decoder,
+            str(output_file_path) + f"_part_{j}.obj",
+            N=256,
+            level=0
+            if cfg.output_type == "occ" and cfg.out_act == "sigmoid"
+            else 0,
+            freeze = True if j < 2 else False,
+            part = j
+        )
 
 
 @click.group()
@@ -53,8 +71,13 @@ def cli():
     "config_name",
     type=str,
 )
+@click.option(
+    "--split_sdf",
+    is_flag=True,
+    help="Part wise mesh generation for a split sdf.",
+)
 def cli_generate_mesh_from_sdf(
-    checkpoint_path: Path, output_file_path: Path, config_name: str
+    checkpoint_path: Path, output_file_path: Path, config_name: str, *, split_sdf: bool = False
 ) -> None:
     """CLI function to generate a mesh from a trained SDF model.
 
@@ -66,7 +89,7 @@ def cli_generate_mesh_from_sdf(
     config_path_relative = Path("../configs/overfitting_configs")
     with initialize(version_base=None, config_path=str(config_path_relative)):
         cfg = compose(config_name=config_name)
-    generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg)
+    generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg, split_sdf=split_sdf)
 
 
 @cli.command()
@@ -88,11 +111,18 @@ def cli_generate_mesh_from_sdf(
     default="*",
     help="Filter string to select specific checkpoint files.",
 )
+@click.option(
+    "--split_sdf",
+    is_flag=True,
+    help="Part wise mesh generation for a split sdf.",
+)
 def cli_generate_meshes_from_sdf(
     checkpoint_folder_path: Path,
     output_folder_path: Path,
     config_name: str,
     filter_string: str,
+    *,
+    split_sdf: bool = False
 ) -> None:
     """CLI function to generate meshes for multiple trained SDF models.
 
@@ -110,7 +140,7 @@ def cli_generate_meshes_from_sdf(
     ).start()
     for checkpoint_path in checkpoint_folder_path.glob(filter_string):
         output_file_path = output_folder_path / f"{checkpoint_path.stem}"
-        generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg)
+        generate_mesh_from_sdf(checkpoint_path, output_file_path, cfg, split_sdf=split_sdf)
         progress_bar.update(progress_bar.currval + 1)
     progress_bar.finish()
 

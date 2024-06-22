@@ -11,7 +11,7 @@ model_type: mlp_3d
 bayesian: False
 logging_root: 'siren/experiment_scripts/logs'
 shape_modify: 'no'
-exp_name: "chair_base_seat"
+exp_name: "chair_base_seat_sorted_classes"
 steps_til_summary: 100
 epochs_til_ckpt: 1
 hidden_features: 128
@@ -30,7 +30,7 @@ multi_process:
   enabled: True
   part_id: 0
   n_of_parts: 4
-  first_weights_name: occ_43941_model_final.pth
+  first_weights_name: occ_43997_model_final.pth
   ignore_first: False
 n_points: 100000
 is_meta: True

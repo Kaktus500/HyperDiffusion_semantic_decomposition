@@ -1,6 +1,16 @@
-from google.cloud import storage
+import sys
 from pathlib import Path
+
+sys.path.append(
+    str(Path(__file__).resolve().parent.parent)
+)  # TODO: Fix this for debug ...
+
 import shutil
+
+from google.cloud import storage
+
+from helpers import HYPER_DIFF_DIR
+
 
 def list_blobs(bucket_name: str):
     """Lists all the blobs in the bucket."""
@@ -57,12 +67,7 @@ if __name__ == "__main__":
     # add export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-file.json" to .bashrc for auth
     bucket_name = "adlcv-dataset-bucket"
     list_blobs(bucket_name)
-    local_data_path = Path("/home/pauldelseith/dataset_storage/partnet/data_v0/")
-    bucket_data_path = Path("partnet/shapes/")
-    folders = list(local_data_path.iterdir())
-
-    for idx, folder in enumerate(folders):
-        if round(idx / len(folders), 3) % 0.01 == 0:
-            print(f"{idx / len(folders) * 100:.2f}% done.")
-        if folder.is_dir():
-            upload_folder_zipped(bucket_name, str(folder), str(bucket_data_path / folder.relative_to(local_data_path)))
+    local_data_path = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / "Chair_100000_pc_occ_in_out_True_split_8" 
+    bucket_data_path = Path("partnet/Chair/")
+    
+    upload_folder_zipped(bucket_name, str(local_data_path), str(bucket_data_path / "Chair_100000_pc_occ_in_out_True_split_8"))
