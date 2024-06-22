@@ -1,6 +1,6 @@
 import sys
-from collections import defaultdict
 from pathlib import Path
+from collections import defaultdict
 from typing import Dict, List
 
 sys.path.append(
@@ -15,47 +15,55 @@ from progressbar import ProgressBar
 from helpers import HYPER_DIFF_DIR
 
 
-def compute_quality_metrics(
-    ply_folder_path: Path,
+def compute_quality_metrics_split(ply_folder_path: Path,
     ground_truth_shape_folder: Path,
-    shape_ids: List[str],
-) -> Dict[str, Dict[str, float]]:
+    shape_ids: List[str], class_count: int) -> Dict[str, Dict[str, float]]:
     metrics = defaultdict(dict)
     progress_bar = ProgressBar(maxval=len(shape_ids)).start()
     for idx, shape_id in enumerate(shape_ids):
-        sdf_mesh = trimesh.Trimesh()
+        sdf_mesh_from_parts = trimesh.Trimesh()
+        sdf_mesh_full = trimesh.Trimesh()
         for ply_file in ply_folder_path.glob(f"*{shape_id}_*.ply"):
+            if str(class_count - 1) in str(ply_file.stem).split("_")[-1]:
+                sdf_mesh_full = trimesh.load_mesh(ply_file)
+                continue
             mesh = trimesh.load_mesh(ply_file)
-            sdf_mesh += mesh
+            sdf_mesh_from_parts += mesh
+
 
         ground_truth_mesh = trimesh.Trimesh()
         for part in ground_truth_shape_folder.glob(f"{shape_id}_*.obj"):
             mesh = trimesh.load_mesh(part)
             ground_truth_mesh += mesh
-
-        # roughly check whether the meshes are somewhat aligned
-
-        bounds_difference = ground_truth_mesh.bounds - sdf_mesh.bounds
-
-        ground_truth_voxel = ground_truth_mesh.voxelized(0.01)
-        sdf_voxel = sdf_mesh.voxelized(0.01)
-
-        # compare count of occupied voxels to check whether the shape is good
-
-        # filled difference value of 0.05 is a first good threshold for filtering results
-        filled_difference = abs(
-            ground_truth_voxel.filled_count - sdf_voxel.filled_count
-        )
-        metrics[shape_id]["bounds_difference_norm"] = np.linalg.norm(
-            bounds_difference, axis=1
-        ).tolist()
-        metrics[shape_id]["filled_difference"] = filled_difference
-        metrics[shape_id]["filled_difference_fraction"] = (
-            filled_difference / ground_truth_voxel.filled_count
-        )
+        
+        metrics[shape_id]["split"] = compute_quality_metrics(ground_truth_mesh, sdf_mesh_from_parts)
+        metrics[shape_id]["full"] = compute_quality_metrics(ground_truth_mesh, sdf_mesh_full)
         progress_bar.update(idx + 1)
     progress_bar.finish()
     return metrics
+
+def compute_quality_metrics(
+    ground_truth_mesh: trimesh.Trimesh, sdf_mesh: trimesh.Trimesh
+) -> Dict[str, float]:
+    metrics = {}
+    # roughly check whether the meshes are somewhat aligned
+    bounds_difference = ground_truth_mesh.bounds - sdf_mesh.bounds
+    ground_truth_voxel = ground_truth_mesh.voxelized(0.01)
+    sdf_voxel = sdf_mesh.voxelized(0.01)
+    # compare count of occupied voxels to check whether the shape is good
+    # filled difference value of 0.05 is a first good threshold for filtering results
+    filled_difference = abs(
+        ground_truth_voxel.filled_count - sdf_voxel.filled_count
+    )
+    metrics["bounds_difference_norm"] = np.linalg.norm(
+        bounds_difference, axis=1
+    ).tolist()
+    metrics["filled_difference"] = filled_difference
+    metrics["filled_difference_fraction"] = (
+        filled_difference / ground_truth_voxel.filled_count
+    )
+    return metrics
+
 
 
 if __name__ == "__main__":
@@ -82,8 +90,8 @@ if __name__ == "__main__":
         / "chair_base_seat_ply"
         / "metrics.json"
     )
-    metrics = compute_quality_metrics(
-        ply_folder_path, ground_truth_shape_folder, shape_ids
+    metrics = compute_quality_metrics_split(
+        ply_folder_path, ground_truth_shape_folder, shape_ids, 3
     )
 
     with open(output_metrics_folder, "w") as f:
