@@ -97,10 +97,13 @@ def main(cfg: DictConfig):
     ######################################################################################################################################
 
     if multip_cfg.enabled:
-        if cfg.strategy == "first_weights":
+        if cfg.strategy == "first_weights" and multip_cfg.first_weights_name is not None:
             first_state_dict = torch.load(
                 os.path.join(root_path, multip_cfg.first_weights_name)
             )
+            name = multip_cfg.first_weights_name.split("_")[1]
+            if name in files_labeled:
+                del files_labeled[name]
 
     for i, file in enumerate(files_labeled.keys()):
         filename = file
@@ -110,6 +113,7 @@ def main(cfg: DictConfig):
             file,
             files_labeled[file],
             on_surface_points=cfg.batch_size,
+            split_shapes=False
         )
 
         dataloader = DataLoader(
