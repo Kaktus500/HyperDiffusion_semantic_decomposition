@@ -20,7 +20,7 @@ from torchvision.transforms import Compose, Normalize, Resize, ToTensor
 
 
 class PointCloud(Dataset):
-    def __init__(self, path, file, classes: list, on_surface_points):
+    def __init__(self, path, file, classes: list, on_surface_points, *, split_shapes: bool = True):
         super().__init__()
         print("Loading point cloud for ", path, file)
 
@@ -35,7 +35,11 @@ class PointCloud(Dataset):
             point_cloud = np.load(os.path.join(path, file + "_" + c + ".obj.npy"))
             self.coords.append(point_cloud[:, :3])
             self.occupancies.append(point_cloud[:, 3])
-            self.labels.extend([i] * point_cloud.shape[0])
+            if split_shapes:
+                self.labels.extend([i] * point_cloud.shape[0])
+            else:
+                # always assign same label
+                self.labels.extend([len(classes_ordered) - 1] * point_cloud.shape[0])
 
         self.coords = np.concatenate(self.coords, axis=0)
         self.occupancies = np.concatenate(self.occupancies, axis=0)
