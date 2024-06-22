@@ -39,7 +39,7 @@ class PointCloud(Dataset):
                 self.labels.extend([i] * point_cloud.shape[0])
             else:
                 # always assign same label
-                self.labels.extend([len(classes_ordered) - 1] * point_cloud.shape[0])
+                self.labels.extend([2] * point_cloud.shape[0])
 
         self.coords = np.concatenate(self.coords, axis=0)
         self.occupancies = np.concatenate(self.occupancies, axis=0)
