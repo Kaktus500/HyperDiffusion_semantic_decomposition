@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Set
 
 sys.path.append(
     str(Path(__file__).resolve().parent.parent)
@@ -17,9 +17,10 @@ from helpers import HYPER_DIFF_DIR
 
 def compute_quality_metrics_split(ply_folder_path: Path,
     ground_truth_shape_folder: Path,
-    shape_ids: List[str], class_count: int) -> Dict[str, Dict[str, float]]:
+    shape_ids: List[str], classes: Set) -> Dict[str, Dict[str, float]]:
     metrics = defaultdict(dict)
     progress_bar = ProgressBar(maxval=len(shape_ids)).start()
+    class_count = len(classes)
     for idx, shape_id in enumerate(shape_ids):
         sdf_mesh_from_parts = trimesh.Trimesh()
         sdf_mesh_full = trimesh.Trimesh()
@@ -33,6 +34,9 @@ def compute_quality_metrics_split(ply_folder_path: Path,
 
         ground_truth_mesh = trimesh.Trimesh()
         for part in ground_truth_shape_folder.glob(f"{shape_id}_*.obj"):
+            if str(part.stem).split("_")[-1] not in classes:
+                # ignore parts not in classes
+                continue
             mesh = trimesh.load_mesh(part)
             ground_truth_mesh += mesh
         
@@ -91,7 +95,7 @@ if __name__ == "__main__":
         / "metrics.json"
     )
     metrics = compute_quality_metrics_split(
-        ply_folder_path, ground_truth_shape_folder, shape_ids, 3
+        ply_folder_path, ground_truth_shape_folder, shape_ids, {"base", "seat", "full"}
     )
 
     with open(output_metrics_folder, "w") as f:
