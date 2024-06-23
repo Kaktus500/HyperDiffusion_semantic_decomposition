@@ -76,7 +76,7 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_base_seat_ply"
+        / "chair_base_seat_sorted_classes_ply"
     )
     category = "Chair"
     shape_ids = list(ply_folder_path.glob("*.ply"))
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_base_seat_ply"
+        / "chair_base_seat_sorted_classes_ply"
         / "metrics.json"
     )
     metrics = compute_quality_metrics_split(

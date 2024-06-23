@@ -74,7 +74,8 @@ def train(
                 p = {key: value.cuda() for key, value in labels.items()}
                 p = p['labels'][0,0]
                 if np.random.uniform() < 0.4:
-                    p = 2 # add to torch device
+                    p = 2
+                    
                 if double_precision:
                     model_input = {
                         key: value.double() for key, value in model_input.items()

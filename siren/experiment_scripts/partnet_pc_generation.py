@@ -44,7 +44,7 @@ def sample_occupancy_grid_from_mesh(
 
 def generate_shape_pc(
     mesh_parts: Dict[str, Tuple[trimesh.Trimesh, Path]],
-    cfg: Dict[str, Any],
+    cfg: Dict[str, Any], *, check_occupancy: bool = True
 ) -> Union[Dict[str, np.ndarray], None]:
     """Generate a normalized point cloud for the parts of a shape.
 
@@ -63,7 +63,7 @@ def generate_shape_pc(
             mesh[0], n_points_uniform, n_points_surface
         )
         # check whether a reasonable number of points inside the shape was found
-        if occupancies.sum() < 10000:
+        if check_occupancy and occupancies.sum() < 0.1 * total_points:
             # try fixing the shape using ManifoldPlus
             command = f"~/ManifoldPlus/build/manifold --input {mesh[1]} --output {mesh[1]} --depth 8"
             try:
@@ -82,7 +82,7 @@ def generate_shape_pc(
                 manifold_mesh, n_points_uniform, n_points_surface
             )
         # if there is still a small amount of points, discard the shape
-        if occupancies.sum() < 5000:
+        if check_occupancy and occupancies.sum() < 0.05 * total_points:
             return None
         point_cloud = points
         point_cloud = np.hstack((point_cloud, occupancies))
@@ -94,7 +94,7 @@ def generate_shape_pc(
 
 
 def generate_shapes_pcs(
-    category: str, parts: List[str], cfg: Dict[str, Any]
+    category: str, parts: List[str], cfg: Dict[str, Any], *, check_occupancy: bool=True
 ) -> List[str]:
     """Geneerate point clouds for list of given shapes.
 
@@ -122,7 +122,7 @@ def generate_shapes_pcs(
             mesh = trimesh.load_mesh(mesh_path)
             mesh_name = mesh_path.name
             mesh_parts[mesh_name] = (mesh, mesh_path)
-        normalized_mesh_parts = generate_shape_pc(mesh_parts, cfg)
+        normalized_mesh_parts = generate_shape_pc(mesh_parts, cfg, check_occupancy=check_occupancy)
         if normalized_mesh_parts is None:
             progress_bar.update(progress_bar.currval + 1)
             shapes_skipped += 1
@@ -164,16 +164,13 @@ if __name__ == "__main__":
         and file.name in file_names
     ]
     shape_name = "Chair"
-    on_surface_points = 2048
-    output_type = "occ"
-    n_points = 100000
     cfg = {
         "save_pc": True,
         "in_out": True,
         "mlp_config": {"move": False},
         "strategy": "save_pc",
         "shape_modify": "no",
-        "n_points": 100000,
+        "n_points": 2048,
         "output_type": "occ",
     }
-    generate_shapes_pcs(category, parts, cfg)
+    generate_shapes_pcs(category, parts, cfg, check_occupancy=False)

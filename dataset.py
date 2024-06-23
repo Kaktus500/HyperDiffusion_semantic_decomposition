@@ -11,6 +11,7 @@ from trimesh.voxel import creation as vox_creation
 from augment import random_permute_flat, random_permute_mlp, sorted_permute_mlp
 from hd_utils import generate_mlp_from_weights, get_mlp
 from siren.dataio import anime_read
+from pathlib import Path
 
 
 class VoxelDataset(Dataset):
@@ -161,6 +162,8 @@ class WeightDataset(Dataset):
             for file in list(os.listdir(mlps_folder)):
                 # Excluding black listed shapes
                 if cfg.filter_bad and file.split("_")[1] in blacklist:
+                    continue
+                if file in {"train_split.lst", "val_split.lst", "test_split.lst"}:
                     continue
                 # Check if file is in corresponding split (train, test, val)
                 # In fact, only train split is important here because we don't use test or val MLP weights

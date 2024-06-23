@@ -25,11 +25,61 @@ from transformer import Transformer
 
 sys.path.append("siren")
 
+def generate_train_val_test_split(dataset_path: str) -> None:
+    all_object_names = np.array(
+            [obj for obj in os.listdir(dataset_path) if ".lst" not in obj]
+    )
+    total_size = len(all_object_names)
+    val_size = int(total_size * 0.07) # adjusted from 5 % since not a lot of data
+    test_size = int(total_size * 0.15)
+    train_size = total_size - val_size - test_size
+    train_idx = np.random.choice(
+        total_size, train_size + val_size, replace=False
+    )
+    test_idx = set(range(total_size)).difference(train_idx)
+    val_idx = set(np.random.choice(train_idx, val_size, replace=False))
+    train_idx = set(train_idx).difference(val_idx)
+    print(
+        "Generating new partition",
+        len(train_idx),
+        train_size,
+        len(val_idx),
+        val_size,
+        len(test_idx),
+        test_size,
+    )
+    # Sanity checking the train, val and test splits
+    assert len(train_idx.intersection(val_idx.intersection(test_idx))) == 0
+    assert len(train_idx.union(val_idx.union(test_idx))) == total_size
+    assert (
+        len(train_idx) == train_size
+        and len(val_idx) == val_size
+        and len(test_idx) == test_size
+    )
+    np.savetxt(
+        os.path.join(dataset_path, "train_split.lst"),
+        all_object_names[list(train_idx)],
+        delimiter=" ",
+        fmt="%s",
+    )
+    np.savetxt(
+        os.path.join(dataset_path, "val_split.lst"),
+        all_object_names[list(val_idx)],
+        delimiter=" ",
+        fmt="%s",
+    )
+    np.savetxt(
+        os.path.join(dataset_path, "test_split.lst"),
+        all_object_names[list(test_idx)],
+        delimiter=" ",
+        fmt="%s",
+    )
+
 
 @hydra.main(
     version_base=None,
     config_path="configs/diffusion_configs",
-    config_name="train_plane",
+    config_name="train_chair",
 )
 def main(cfg: DictConfig):
     Config.config = config = cfg
@@ -78,66 +128,16 @@ def main(cfg: DictConfig):
         ).float()
 
     dataset_path = os.path.join(Config.config["dataset_dir"], Config.config["dataset"])
+    # if train/test/val split files do not exist, generate them
+    if not os.path.exists(os.path.join(dataset_path, "train_split.lst")):
+        generate_train_val_test_split(dataset_path)
     train_object_names = np.genfromtxt(
         os.path.join(dataset_path, "train_split.lst"), dtype="str"
     )
-    if not cfg.mlp_config.params.move:
-        train_object_names = set([str.split(".")[0] for str in train_object_names])
+    # if not cfg.mlp_config.params.move:
+    #     train_object_names = set([str.split(".")[0] for str in train_object_names])
     # Check if dataset folder already has train,test,val split; create otherwise.
     if method == "hyper_3d":
-        mlps_folder_all = mlps_folder_train
-        all_object_names = np.array(
-            [obj for obj in os.listdir(dataset_path) if ".lst" not in obj]
-        )
-        total_size = len(all_object_names)
-        val_size = int(total_size * 0.05)
-        test_size = int(total_size * 0.15)
-        train_size = total_size - val_size - test_size
-        if not os.path.exists(os.path.join(dataset_path, "train_split.lst")):
-            train_idx = np.random.choice(
-                total_size, train_size + val_size, replace=False
-            )
-            test_idx = set(range(total_size)).difference(train_idx)
-            val_idx = set(np.random.choice(train_idx, val_size, replace=False))
-            train_idx = set(train_idx).difference(val_idx)
-            print(
-                "Generating new partition",
-                len(train_idx),
-                train_size,
-                len(val_idx),
-                val_size,
-                len(test_idx),
-                test_size,
-            )
-
-            # Sanity checking the train, val and test splits
-            assert len(train_idx.intersection(val_idx.intersection(test_idx))) == 0
-            assert len(train_idx.union(val_idx.union(test_idx))) == total_size
-            assert (
-                len(train_idx) == train_size
-                and len(val_idx) == val_size
-                and len(test_idx) == test_size
-            )
-
-            np.savetxt(
-                os.path.join(dataset_path, "train_split.lst"),
-                all_object_names[list(train_idx)],
-                delimiter=" ",
-                fmt="%s",
-            )
-            np.savetxt(
-                os.path.join(dataset_path, "val_split.lst"),
-                all_object_names[list(val_idx)],
-                delimiter=" ",
-                fmt="%s",
-            )
-            np.savetxt(
-                os.path.join(dataset_path, "test_split.lst"),
-                all_object_names[list(test_idx)],
-                delimiter=" ",
-                fmt="%s",
-            )
-
         val_object_names = np.genfromtxt(
             os.path.join(dataset_path, "val_split.lst"), dtype="str"
         )

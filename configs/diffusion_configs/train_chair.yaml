@@ -5,8 +5,8 @@ test_sample_mult: 1.1
 filter_bad: True
 filter_bad_path: ./data/chair_problematic_shapes.txt
 disable_wandb: False
-dataset_dir: ./data
-dataset: 03001627
+dataset_dir: ./data/partnet/sem_seg_meshes/
+dataset: chair_base_seat_sorted_classes
 tensorboard_log_dir: .
 augment: False
 augment_amount: 0
@@ -18,7 +18,7 @@ scheduler: True
 scheduler_step: 200
 best_model_save_path:
 mode: train
-mlps_folder_train: ./mlp_weights/3d_128_chair_multires_4_manifoldplus_slower_no_clipgrad
+mlps_folder_train: ./mlp_weights/chair_base_seat_sorted_classes
 model_resume_path:
 sampling: ddim
 val_fid_calculation_period: 15
@@ -26,7 +26,7 @@ lr: 0.0002
 batch_size: 32
 accumulate_grad_batches: 1
 val:
-  num_points: 2048
+  num_points: 100000
   num_samples: 60
 mlp_config:
   params:
@@ -48,7 +48,7 @@ diff_config:
     loss_type: MSE
 transformer_config:
   params:
-    n_embd: 2880
+    n_embd: 1440
     n_layer: 12
     n_head: 16
     split_policy: layer_by_layer
