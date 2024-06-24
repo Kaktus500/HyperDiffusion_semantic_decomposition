@@ -81,7 +81,13 @@ def main(cfg: DictConfig):
     multip_cfg = cfg.multi_process
     dataset_folder = str(HYPER_DIFF_DIR / Path(cfg.dataset_folder))
     files = os.listdir(dataset_folder)
+    train_shapes_ids = []
 
+    # if given, specifies which shapes should be trained
+    if "train_shapes.lst" in files:
+        with open(os.path.join(dataset_folder, "train_shapes.lst"), "r") as f:
+            train_shapes_ids = [line.strip() for line in f]
+        files.remove("train_shapes.lst")
 
     ############################## Here we load an object for each sample that contains a list of class labels ##############################
     # e.g. files_labeled = {"chair1": ["base", "back"], "chair2": ["base", "back"]}
@@ -101,12 +107,17 @@ def main(cfg: DictConfig):
             first_state_dict = torch.load(
                 os.path.join(root_path, multip_cfg.first_weights_name)
             )
+            # remove file used as start from training files
             name = multip_cfg.first_weights_name.split("_")[1]
             if name in files_labeled:
                 del files_labeled[name]
 
     for i, file in enumerate(files_labeled.keys()):
         filename = file
+
+        # if train_shapes_ids specified ignore all shapes that are not mentioned in it
+        if train_shapes_ids and filename not in train_shapes_ids:
+            continue
 
         sdf_dataset = dataio_partnet.PointCloud( # The dataset class is modified to include the class labels
             dataset_folder,
