@@ -31,6 +31,7 @@ def normalize_mesh(
     vertices -= vertices_mean
     vertices_max = np.amax(vertices)
     vertices_min = np.amin(vertices)
+    # normalize the mesh on range [-0.5, 0.5]
     vertices_scaling = 0.5 * 0.95 / (max(abs(vertices_min), abs(vertices_max)))
     vertices *= vertices_scaling
     mesh.vertices = vertices

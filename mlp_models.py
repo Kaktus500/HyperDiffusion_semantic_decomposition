@@ -93,7 +93,7 @@ class MLP3D(nn.Module):
             )
         self.layers.append(nn.Linear(hidden_neurons[-1], out_size, bias=use_bias))
 
-    def forward(self, model_input, freeze, p):
+    def forward(self, model_input, freeze: bool = False, p: int = 2):
         coords_org = model_input["coords"].clone().detach().requires_grad_(True)
         x = coords_org
         x = self.embedder.embed(x)

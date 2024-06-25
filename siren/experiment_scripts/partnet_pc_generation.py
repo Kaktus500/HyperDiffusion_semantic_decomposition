@@ -42,7 +42,7 @@ def sample_occupancy_grid_from_mesh(
     return points, occupancies
 
 
-def generate_shape_pc(
+def generate_shape_occupancy_pc(
     mesh_parts: Dict[str, Tuple[trimesh.Trimesh, Path]],
     cfg: Dict[str, Any], *, check_occupancy: bool = True
 ) -> Union[Dict[str, np.ndarray], None]:
@@ -92,8 +92,49 @@ def generate_shape_pc(
         part_point_clouds[part_name] = point_cloud_xyz
     return part_point_clouds
 
+def generate_shape_pc(mesh: trimesh.Trimesh, n_points: int) -> np.ndarray:
+    """Generate a normalized point cloud for a shape.
 
-def generate_shapes_pcs(
+    Args:
+        mesh: The mesh of the shape.
+        n_points: The number of points to sample.
+    """
+    points = mesh.sample(n_points)
+    return points
+
+def generate_shapes_pcs(category: str, parts: List[str], cfg: Dict[str, Any], include_part_names: Union[List[str], None] = None) -> None:
+    """Generate point clouds for points on the surface of the shapes."""
+    pc_out_dir = (
+        HYPER_DIFF_DIR
+        / "data"
+        / "partnet"
+        / "sem_seg_meshes"
+        / f"{category}_{cfg['n_points']}_pc"
+    )
+    pc_out_dir.mkdir(parents=True, exist_ok=True)
+    # extract unique shape ids from parts list
+    shape_ids = {part.split("_")[0] for part in parts}
+    shape_ids = list(shape_ids)
+    progress_bar = ProgressBar(maxval=len(shape_ids)).start()
+    mesh_parts_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
+    # iterate over shapes and generate normalized point clouds
+    for shape_id in shape_ids:
+        shape_mesh = trimesh.Trimesh()
+        for mesh_path in mesh_parts_dir.glob(f"{shape_id}_*.obj"):
+            mesh = trimesh.load_mesh(mesh_path)
+            part_name = mesh_path.stem.split("_")[-1]
+            if include_part_names is not None and part_name in include_part_names:
+                shape_mesh += mesh
+        mesh_pc = generate_shape_pc(shape_mesh, cfg["n_points"])
+        pc_path = pc_out_dir / f"{shape_id}.npy"
+        np.save(pc_path, mesh_pc)
+        progress_bar.update(progress_bar.currval + 1)
+    progress_bar.finish()
+    print(f"Generated point clouds for {len(shape_ids)} shapes")
+    print(f"Point clouds saved at {pc_out_dir}")
+
+
+def generate_shapes_occupancy_pcs(
     category: str, parts: List[str], cfg: Dict[str, Any], *, check_occupancy: bool=True
 ) -> List[str]:
     """Geneerate point clouds for list of given shapes.
@@ -122,7 +163,7 @@ def generate_shapes_pcs(
             mesh = trimesh.load_mesh(mesh_path)
             mesh_name = mesh_path.name
             mesh_parts[mesh_name] = (mesh, mesh_path)
-        normalized_mesh_parts = generate_shape_pc(mesh_parts, cfg, check_occupancy=check_occupancy)
+        normalized_mesh_parts = generate_shape_occupancy_pc(mesh_parts, cfg, check_occupancy=check_occupancy)
         if normalized_mesh_parts is None:
             progress_bar.update(progress_bar.currval + 1)
             shapes_skipped += 1
@@ -150,20 +191,25 @@ def generate_shapes_pcs(
 
 
 if __name__ == "__main__":
-    category = "Chair"
-    split = "train"
+    category = "Chair_reduced"
+    split = "val"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     file_names = np.genfromtxt(
         dataset_dir / f"{split}_split.lst",
         dtype="str",
     )
+    # parts = [
+    #     file.name
+    #     for file in dataset_dir.iterdir()
+    #     if file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
+    #     and file.name in file_names
+    # ]
     parts = [
         file.name
         for file in dataset_dir.iterdir()
         if file.name not in {"train_split.lst", "val_split.lst", "test_split.lst"}
-        and file.name in file_names
+        and file.stem.split("_")[0] in file_names
     ]
-    shape_name = "Chair"
     cfg = {
         "save_pc": True,
         "in_out": True,
@@ -173,4 +219,5 @@ if __name__ == "__main__":
         "n_points": 2048,
         "output_type": "occ",
     }
-    generate_shapes_pcs(category, parts, cfg, check_occupancy=False)
+    # generate_shapes_occupancy_pcs(category, parts, cfg, check_occupancy=False)
+    generate_shapes_pcs(category, parts, cfg, ["base", "seat"])

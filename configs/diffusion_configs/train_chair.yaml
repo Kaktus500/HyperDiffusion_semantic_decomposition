@@ -6,7 +6,7 @@ filter_bad: True
 filter_bad_path: ./data/chair_problematic_shapes.txt
 disable_wandb: False
 dataset_dir: ./data/partnet/sem_seg_meshes/
-dataset: chair_base_seat_sorted_classes
+dataset: Chair_reduced
 tensorboard_log_dir: .
 augment: False
 augment_amount: 0
@@ -26,7 +26,7 @@ lr: 0.0002
 batch_size: 32
 accumulate_grad_batches: 1
 val:
-  num_points: 100000
+  num_points: 2048
   num_samples: 60
 mlp_config:
   params:

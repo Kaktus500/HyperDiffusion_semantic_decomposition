@@ -1,4 +1,6 @@
 import os
+import sys
+from pathlib import Path
 
 from dataset import VoxelDataset, WeightDataset
 from hd_utils import Config, get_mlp
@@ -6,7 +8,6 @@ from hyperdiffusion import HyperDiffusion
 
 # Using it to make pyrender work on clusters
 os.environ["PYOPENGL_PLATFORM"] = "egl"
-import sys
 from datetime import datetime
 from os.path import join
 
@@ -21,14 +22,18 @@ from torch.utils.data import DataLoader, random_split
 
 import ldm.ldm.modules.diffusionmodules.openaimodel
 import wandb
+from helpers import HYPER_DIFF_DIR
 from transformer import Transformer
 
 sys.path.append("siren")
 
 def generate_train_val_test_split(dataset_path: str) -> None:
-    all_object_names = np.array(
-            [obj for obj in os.listdir(dataset_path) if ".lst" not in obj]
-    )
+    dataset_path_global = HYPER_DIFF_DIR / dataset_path
+    # get list of all shape ids
+    all_object_names = np.array(list({file_path.stem.split("_")[0] for file_path in dataset_path_global.glob("*.obj")}))
+    # all_object_names = np.array(
+    #         [obj for obj in os.listdir(dataset_path) if ".lst" not in obj]
+    # )
     total_size = len(all_object_names)
     val_size = int(total_size * 0.07) # adjusted from 5 % since not a lot of data
     test_size = int(total_size * 0.15)
