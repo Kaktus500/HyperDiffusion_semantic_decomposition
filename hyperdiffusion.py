@@ -597,8 +597,8 @@ class HyperDiffusion(pl.LightningModule):
                 mesh = vox_mesh
             if len(mesh.vertices) > 0:
                 pc = torch.tensor(mesh.sample(n_points))
-                if not self.cfg.mlp_config.params.move and "hyper" in self.cfg.method:
-                    pc = pc * 2
+                # if not self.cfg.mlp_config.params.move and "hyper" in self.cfg.method:
+                #     pc = pc * 2 does not seem necessary, ground truth is already normalized
                 pc = pc.float()
                 if split_type == "test":
                     pc = pc.float()
