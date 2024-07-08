@@ -63,6 +63,7 @@ class MLP3D(nn.Module):
         multires=10,
         output_type=None,
         move=False,
+        mlp_components=1,
         **kwargs,
     ):
         super().__init__()
@@ -75,12 +76,17 @@ class MLP3D(nn.Module):
             periodic_fns=[torch.sin, torch.cos],
         )
 
-        ########################## Define the mask
+        # one component is e.g. the first 32 neurons of a 128-neuron layer
+        # the mask sets all weights except for the i-th component to zero
+        hid_neur = hidden_neurons[0]
+        assert all(n == hid_neur for n in hidden_neurons)
+        assert hid_neur % mlp_components == 0
+        component_size = hid_neur // mlp_components
+
         self.mask = []
-        for i in range(2): 
-            self.mask.append(torch.zeros((1,1,128)).to(device='cuda'))
-            self.mask[i][:,:,i*64:(i+1)*64] = 1
-        self.mask.append(torch.ones((1,1,128)).to(device='cuda'))
+        for i in range(mlp_components): 
+            self.mask.append(torch.zeros((1,1,hid_neur)).to(device='cuda'))
+            self.mask[i][:,:,i*component_size:(i+1)*component_size] = 1
 
         self.layers = nn.ModuleList([])
         self.output_type = output_type
@@ -93,7 +99,7 @@ class MLP3D(nn.Module):
             )
         self.layers.append(nn.Linear(hidden_neurons[-1], out_size, bias=use_bias))
 
-    def forward(self, model_input, freeze: bool = False, p: int = 2):
+    def forward(self, model_input, freeze: bool = False, p: int = 0):
         coords_org = model_input["coords"].clone().detach().requires_grad_(True)
         x = coords_org
         x = self.embedder.embed(x)
@@ -101,9 +107,9 @@ class MLP3D(nn.Module):
             x = layer(x)
             x = F.leaky_relu(x) if self.use_leaky_relu else F.relu(x)
 
-            ############################### Apply mask
             if freeze:
                 x = x * self.mask[p]
+
         x = self.layers[-1](x)
 
         if self.output_type == "occ":

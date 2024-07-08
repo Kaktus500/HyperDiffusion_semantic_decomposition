@@ -40,14 +40,14 @@ def generate_mesh_from_sdf(
 def split_sdf_create_mesh(
         sdf_decoder: SDFDecoder, output_file_path: Path, cfg: DictConfig
 ) -> None:
-    for j in range(3):
+    for j in range(5):
         sdf_meshing.create_mesh(sdf_decoder,
             str(output_file_path) + f"_part_{j}.obj",
             N=256,
             level=0
             if cfg.output_type == "occ" and cfg.out_act == "sigmoid"
             else 0,
-            freeze = True if j < 2 else False,
+            freeze = True if j < 4 else False,
             part = j
         )
 

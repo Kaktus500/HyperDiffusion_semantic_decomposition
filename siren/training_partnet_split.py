@@ -68,13 +68,19 @@ def train(
             for step, (model_input, gt, labels) in enumerate(train_dataloader):
                 start_time = time.time()
 
+
+
                 model_input = {key: value.cuda() for key, value in model_input.items()}
                 gt = {key: value.cuda() for key, value in gt.items()}
 
                 p = {key: value.cuda() for key, value in labels.items()}
-                p = p['labels'][0,0]
+
+
                 if np.random.uniform() < 0.4:
-                    p = 2
+                    freeze = False
+                else:
+                    freeze = True
+                    p = p['labels'][0,0]
                     
                 if double_precision:
                     model_input = {
@@ -83,7 +89,7 @@ def train(
                     gt = {key: value.double() for key, value in gt.items()}
 
 
-                model_output = model(model_input, True, p)
+                model_output = model(model_input, freeze, p)
                 losses = loss_fn(model_output, gt, model)
 
                 train_loss = 0.0

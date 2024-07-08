@@ -28,18 +28,29 @@ class PointCloud(Dataset):
         self.coords = []
         self.occupancies = []
 
-        # we need to sort classes to get consistent ordering of labels
-        classes_ordered = sorted(classes)
+        classes = sorted(classes)
+        self.nr_classes = len(classes)
 
-        for i, c in enumerate(classes_ordered):
-            point_cloud = np.load(os.path.join(path, file + "_" + c + ".obj.npy"))
+        # assign labels to classes
+        def _get_label(c):
+            if c == "arm":
+                return 0
+            elif c == "back":
+                return 1
+            elif c == "base":
+                return 2
+            elif c == "seat":
+                return 3
+
+        for c in classes:
+            point_cloud = np.load(os.path.join(path, file + "_chair_" + c + ".obj.npy"))
             self.coords.append(point_cloud[:, :3])
             self.occupancies.append(point_cloud[:, 3])
             if split_shapes:
-                self.labels.extend([i] * point_cloud.shape[0])
+                self.labels.extend([_get_label(c)] * point_cloud.shape[0])
             else:
                 # always assign same label
-                self.labels.extend([2] * point_cloud.shape[0])
+                self.labels.extend([4] * point_cloud.shape[0])
 
         self.coords = np.concatenate(self.coords, axis=0)
         self.occupancies = np.concatenate(self.occupancies, axis=0)
@@ -54,8 +65,10 @@ class PointCloud(Dataset):
         idx_size = self.on_surface_points
         idx = np.random.randint(length, size=idx_size)
 
-        if np.random.randint(2) == 0:
-            idx += length
+        # each class has 200k points
+        # we sample from one random class for each batch
+        i = np.random.randint(self.nr_classes)
+        idx += length * i
 
         coords = self.coords[idx]
         occs = self.occupancies[idx, None]
@@ -63,4 +76,4 @@ class PointCloud(Dataset):
 
         return {"coords": torch.from_numpy(coords).float()}, {
             "sdf": torch.from_numpy(occs)
-        }, {"labels": torch.from_numpy(labels).long()}
+        }, {"labels": torch.from_numpy(labels).int()}

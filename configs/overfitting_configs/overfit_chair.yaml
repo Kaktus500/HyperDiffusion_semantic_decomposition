@@ -44,3 +44,4 @@ mlp_config:
   multires: 4
   move: False
   output_type: "occ"
+  mlp_components: 4
