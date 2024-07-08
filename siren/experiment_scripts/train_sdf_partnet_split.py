@@ -251,7 +251,7 @@ def main(cfg: DictConfig):
                     imgs = np.transpose(imgs, axes=(0, 3, 1, 2))
                     wandb.log({"animation": wandb.Video(imgs, fps=16)})
                 else:
-                    for j in range(cfg.mlp_components+1):
+                    for j in range(cfg.mlp_config.mlp_components+1):
                         sdf_meshing.create_mesh(
                             sdf_decoder,
                             os.path.join(cfg.logging_root, f"{cfg.exp_name}_ply", f"{filename}_{j}"),
@@ -259,7 +259,7 @@ def main(cfg: DictConfig):
                             level=0
                             if cfg.output_type == "occ" and cfg.out_act == "sigmoid"
                             else 0,
-                            freeze = True if j < cfg.mlp_components else False,
+                            freeze = True if j < cfg.mlp_config.mlp_components else False,
                             part = j
                         )
 
