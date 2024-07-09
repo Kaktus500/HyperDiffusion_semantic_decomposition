@@ -205,7 +205,7 @@ def main(cfg: DictConfig):
     )
 
     print(
-        "Train dataset length: {} Val dataset length: {} Test dataset length".format(
+        "Train dataset length: {} Val dataset length: {} Test dataset length {}".format(
             len(train_dt), len(val_dt), len(test_dt)
         )
     )
@@ -216,7 +216,7 @@ def main(cfg: DictConfig):
         input_data.min(),
         input_data.max(),
     )
-
+    torch.set_float32_matmul_precision("high") # try tf32 for speedup
     best_model_save_path = Config.get("best_model_save_path")
     model_resume_path = Config.get("model_resume_path")
 
@@ -275,6 +275,10 @@ def main(cfg: DictConfig):
     if Config.get("mode") == "train":
         # If model_resume_path is provided (i.e., not None), the training will continue from that checkpoint
         trainer.fit(diffuser, train_dl, val_dl, ckpt_path=model_resume_path)
+
+    # output = trainer.predict(diffuser,
+    #     test_dl,
+    #     ckpt_path=best_model_save_path if Config.get("mode") == "test" else None,)
 
     # best_model_save_path is the path to saved best model
     trainer.test(
