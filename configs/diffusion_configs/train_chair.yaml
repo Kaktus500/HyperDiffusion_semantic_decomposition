@@ -16,8 +16,8 @@ timesteps: 500
 epochs: 6000
 scheduler: True
 scheduler_step: 200
-best_model_save_path:
-mode: train
+best_model_save_path: ./lightning_checkpoints/2024-06-25_08-06-16.484778-serene-fog-23-y284q4or/best-val-mmd-epoch=1439-train_loss=0.07-val_fid=0.00.ckpt
+mode: test
 mlps_folder_train: ./mlp_weights/chair_base_seat_sorted_classes
 model_resume_path:
 sampling: ddim
