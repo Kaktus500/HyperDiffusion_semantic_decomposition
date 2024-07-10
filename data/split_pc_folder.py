@@ -55,22 +55,24 @@ def split_pc_folder(shape_name: str, n_chunks: int, pc_folder_path: Path, part_n
             current_folder_path.mkdir(parents=True, exist_ok=True)
         for part_name in part_names:
             shutil.copy(pc_folder_path / (shape_id + f"_{shape_name}_{part_name}.obj.npy"), current_folder_path / (shape_id + f"_{part_name}.obj.npy"))
-        progress_bar.update(idx + 1)  
+        progress_bar.update(idx + 1)
+    idx_old = shapes_per_chunk * (current_chunk + 1)
     # then transfer all shapes for which one part is missing
     for idx, shape_id in enumerate(shape_ids_missing):
-        if idx == shapes_per_chunk * (current_chunk + 1):
+        if idx_old + idx == shapes_per_chunk * (current_chunk + 1):
             current_chunk += 1
             current_folder_path = pc_folder_path.parent / (pc_folder_name + f"_full_zeroed_{fill_missing_part_with_empty_pc}" + f"_split_{current_chunk}")
             current_folder_path.mkdir(parents=True, exist_ok=True)
         for part_name in part_names:
             if fill_missing_part_with_empty_pc == part_name:
                 # fill all missing parts with empty point clouds
-                point_cloud = np.load(pc_folder_path / (shape_id + f"_{shape_name}_{part_name}.obj.npy"))
-                point_cloud[:,3] = 0
+                point_cloud = np.random.uniform(-0.5, 0.5, size=(200000, 3))
+                occupancies = np.zeros((200000, 1))
+                point_cloud = np.hstack((point_cloud, occupancies))
                 np.save(current_folder_path / (shape_id + f"_{part_name}.obj.npy"), point_cloud)
             else:
                 shutil.copy(pc_folder_path / (shape_id + f"_{shape_name}_{part_name}.obj.npy"), current_folder_path / (shape_id + f"_{part_name}.obj.npy"))
-        progress_bar.update(idx + 1)
+        progress_bar.update(progress_bar.currval + 1)
 
     progress_bar.finish()
 
