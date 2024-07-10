@@ -124,7 +124,7 @@ def main(cfg: DictConfig):
             file,
             files_labeled[file],
             on_surface_points=cfg.batch_size,
-            split_shapes=False
+            split_shapes=True
         )
 
         dataloader = DataLoader(

@@ -40,6 +40,7 @@ def generate_mesh_from_sdf(
 def split_sdf_create_mesh(
         sdf_decoder: SDFDecoder, output_file_path: Path, cfg: DictConfig
 ) -> None:
+    """Generate all parts of the mesh by unfreezing the various parts."""
     for j in range(5):
         sdf_meshing.create_mesh(sdf_decoder,
             str(output_file_path) + f"_part_{j}.obj",

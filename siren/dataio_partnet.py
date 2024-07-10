@@ -43,14 +43,14 @@ class PointCloud(Dataset):
                 return 3
 
         for c in classes:
-            point_cloud = np.load(os.path.join(path, file + "_chair_" + c + ".obj.npy"))
+            point_cloud = np.load(os.path.join(path, file + "_" + c + ".obj.npy"))
             self.coords.append(point_cloud[:, :3])
             self.occupancies.append(point_cloud[:, 3])
             if split_shapes:
                 self.labels.extend([_get_label(c)] * point_cloud.shape[0])
             else:
                 # always assign same label
-                self.labels.extend([4] * point_cloud.shape[0])
+                self.labels.extend([4] * point_cloud.shape[0]) # TODO: Seems that 4 might be wrong here?
 
         self.coords = np.concatenate(self.coords, axis=0)
         self.occupancies = np.concatenate(self.occupancies, axis=0)
