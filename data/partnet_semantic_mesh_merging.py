@@ -86,6 +86,7 @@ def sem_seg_mesh_merging(
                 ms.meshing_merge_close_vertices(threshold=Percentage(5))
                 ms.meshing_remove_duplicate_faces()
                 ms.meshing_repair_non_manifold_edges(method="Split Vertices")
+                ms.meshing_re_orient_faces_coherently()
                 try:
                     result = ms.meshing_close_holes(
                         maxholesize=no_vertexes // 20, selfintersection=False
