@@ -67,10 +67,11 @@ if __name__ == "__main__":
     # add export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-file.json" to .bashrc for auth
     bucket_name = "adlcv-dataset-bucket"
     list_blobs(bucket_name)
+    upload_blob(bucket_name, "/home/pauldelseith/HyperDiffusion_semantic_decomposition/siren/experiment_scripts/logs/chair_complete_baseline.zip", "chair_complete_baseline_l4_split_5_6.zip")
 
-    for i in range(9):
-        local_data_path = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / f"Chair_100000_pc_occ_in_out_True_split_{i}.zip" 
-        bucket_data_path = Path("partnet/Chair") / f"Chair_100000_pc_occ_in_out_True_split_{i}.zip"
+    # for i in range(9):
+    #     local_data_path = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / f"Chair_100000_pc_occ_in_out_True_split_{i}.zip" 
+    #     bucket_data_path = Path("partnet/Chair") / f"Chair_100000_pc_occ_in_out_True_split_{i}.zip"
 
-        # upload_folder_zipped(bucket_name, str(local_data_path), str(bucket_data_path / "Chair_100000_pc_occ_in_out_True_split_8"))
-        download_blob(bucket_name, str(bucket_data_path), str(local_data_path))
+    #     # upload_folder_zipped(bucket_name, str(local_data_path), str(bucket_data_path / "Chair_100000_pc_occ_in_out_True_split_8"))
+    #     download_blob(bucket_name, str(bucket_data_path), str(local_data_path))

@@ -191,8 +191,8 @@ def generate_shapes_occupancy_pcs(
 
 
 if __name__ == "__main__":
-    category = "Chair_reduced"
-    split = "val"
+    category = "Chair_reduced_full"
+    split = "test"
     dataset_dir = HYPER_DIFF_DIR / "data" / "partnet" / "sem_seg_meshes" / category
     file_names = np.genfromtxt(
         dataset_dir / f"{split}_split.lst",
@@ -220,4 +220,4 @@ if __name__ == "__main__":
         "output_type": "occ",
     }
     # generate_shapes_occupancy_pcs(category, parts, cfg, check_occupancy=False)
-    generate_shapes_pcs(category, parts, cfg, ["base", "seat"])
+    generate_shapes_pcs(category, parts, cfg, ["base", "seat","arm","back"])

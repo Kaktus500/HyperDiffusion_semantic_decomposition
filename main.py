@@ -35,7 +35,7 @@ def generate_train_val_test_split(dataset_path: str) -> None:
     #         [obj for obj in os.listdir(dataset_path) if ".lst" not in obj]
     # )
     total_size = len(all_object_names)
-    val_size = int(total_size * 0.07) # adjusted from 5 % since not a lot of data
+    val_size = int(total_size * 0.1) # adjusted from 5 % since not a lot of data
     test_size = int(total_size * 0.15)
     train_size = total_size - val_size - test_size
     train_idx = np.random.choice(
@@ -216,7 +216,7 @@ def main(cfg: DictConfig):
         input_data.min(),
         input_data.max(),
     )
-    torch.set_float32_matmul_precision("high") # try tf32 for speedup
+    torch.set_float32_matmul_precision("high") # tf32 for speedup
     best_model_save_path = Config.get("best_model_save_path")
     model_resume_path = Config.get("model_resume_path")
 
