@@ -26,15 +26,44 @@ def emd_approx(sample, ref):
 
 # Borrow from https://github.com/ThibaultGROUEIX/AtlasNet
 def distChamfer(a, b):
+    """
+    Compute the Chamfer distance between two sets of points in 3D space.
+
+    The Chamfer distance is calculated as the sum of the distances from each point
+    in one set to its nearest neighbor in the other set, and vice versa.
+
+    Args:
+        a (torch.Tensor): First set of points, shape (batch_size, num_points, 3)
+        b (torch.Tensor): Second set of points, shape (batch_size, num_points, 3)
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing two tensors:
+            - Distances from each point in 'a' to its nearest neighbor in 'b'
+            - Distances from each point in 'b' to its nearest neighbor in 'a'
+            Both tensors have shape (batch_size, num_points)
+
+    Note:
+        This implementation computes squared Euclidean distances.
+        To get true Euclidean distances, take the square root of the results.
+    """
     x, y = a, b
     bs, num_points, points_dim = x.size()
-    xx = torch.bmm(x, x.transpose(2, 1))
-    yy = torch.bmm(y, y.transpose(2, 1))
-    zz = torch.bmm(x, y.transpose(2, 1))
+
+    # Compute dot products for x with x, y with y, and x with y
+    xx = torch.bmm(x, x.transpose(2, 1)) # (batch_size, num_points, num_points)
+    yy = torch.bmm(y, y.transpose(2, 1)) # (batch_size, num_points, num_points)
+    zz = torch.bmm(x, y.transpose(2, 1)) # (batch_size, num_points, num_points)
+    
+    # Extract diagonals for xx and yy
     diag_ind = torch.arange(0, num_points).to(a).long()
     rx = xx[:, diag_ind, diag_ind].unsqueeze(1).expand_as(xx)
     ry = yy[:, diag_ind, diag_ind].unsqueeze(1).expand_as(yy)
-    P = rx.transpose(2, 1) + ry - 2 * zz
+
+    # Compute pairwise squared distances
+    # ||x-y||^2 = ||x||^2 + ||y||^2 - 2<x,y>
+    P = rx.transpose(2, 1) + ry - 2 * zz # (batch_size, num_points, num_points)
+
+    # Compute minimum distances
     return P.min(1)[0], P.min(2)[0]
 
 
