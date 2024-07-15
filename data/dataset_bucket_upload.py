@@ -73,4 +73,4 @@ if __name__ == "__main__":
         bucket_data_path = Path("partnet/Chair") / f"Chair_100000_pc_occ_in_out_True_split_{i}.zip"
 
         # upload_folder_zipped(bucket_name, str(local_data_path), str(bucket_data_path / "Chair_100000_pc_occ_in_out_True_split_8"))
-        download_blob(bucket_name, str(bucket_data_path), str(local_data_path))
+        download_blob(bucket_name, "chair_complete_baseline_t4_split_7.zip", "/home/pauldelseith/HyperDiffusion_semantic_decomposition/siren/experiment_scripts/logs/chair_complete_baseline_t4_split_7.zip")
