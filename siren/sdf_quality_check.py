@@ -22,15 +22,18 @@ def compute_quality_metrics_split(ply_folder_path: Path,
     progress_bar = ProgressBar(maxval=len(shape_ids)).start()
     class_count = len(classes)
     for idx, shape_id in enumerate(shape_ids):
-        sdf_mesh_from_parts = trimesh.Trimesh()
+        #sdf_mesh_from_parts = trimesh.Trimesh()
         sdf_mesh_full = trimesh.Trimesh()
-        for ply_file in ply_folder_path.glob(f"*{shape_id}_*.ply"):
-            if str(class_count - 1) in str(ply_file.stem).split("_")[-1]:
-                sdf_mesh_full = trimesh.load_mesh(ply_file)
-                continue
-            mesh = trimesh.load_mesh(ply_file)
-            sdf_mesh_from_parts += mesh
-
+        try:
+            for ply_file in ply_folder_path.glob(f"*{shape_id}_model_final_part_*.ply"):
+                    if str(class_count - 1) in str(ply_file.stem).split("_")[-1]:
+                        sdf_mesh_full = trimesh.load_mesh(ply_file)
+                        continue
+                    #mesh = trimesh.load_mesh(ply_file)
+                    #sdf_mesh_from_parts += mesh
+        except ValueError as e:
+            continue
+                
 
         ground_truth_mesh = trimesh.Trimesh()
         for part in ground_truth_shape_folder.glob(f"{shape_id}_*.obj"):
@@ -40,7 +43,7 @@ def compute_quality_metrics_split(ply_folder_path: Path,
             mesh = trimesh.load_mesh(part)
             ground_truth_mesh += mesh
         
-        metrics[shape_id]["split"] = compute_quality_metrics(ground_truth_mesh, sdf_mesh_from_parts)
+        #metrics[shape_id]["split"] = compute_quality_metrics(ground_truth_mesh, sdf_mesh_from_parts)
         metrics[shape_id]["full"] = compute_quality_metrics(ground_truth_mesh, sdf_mesh_full)
         progress_bar.update(idx + 1)
     progress_bar.finish()
@@ -51,9 +54,13 @@ def compute_quality_metrics(
 ) -> Dict[str, float]:
     metrics = {}
     # roughly check whether the meshes are somewhat aligned
+    if sdf_mesh.bounds is None:
+        return {"bounds_difference_norm": np.inf, "filled_difference": np.inf, "filled_difference_fraction": np.inf}
     bounds_difference = ground_truth_mesh.bounds - sdf_mesh.bounds
-    ground_truth_voxel = ground_truth_mesh.voxelized(0.01)
-    sdf_voxel = sdf_mesh.voxelized(0.01)
+    # ground_truth_voxel = ground_truth_mesh.voxelized(0.01)
+    ground_truth_voxel = ground_truth_mesh.voxelized(0.05)
+    # sdf_voxel = sdf_mesh.voxelized(0.01)
+    sdf_voxel = sdf_mesh.voxelized(0.05)
     # compare count of occupied voxels to check whether the shape is good
     # filled difference value of 0.05 is a first good threshold for filtering results
     filled_difference = abs(
@@ -76,7 +83,7 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_base_seat_sorted_classes_ply"
+        / "chair_complete_split_merged_ply"
     )
     category = "Chair"
     shape_ids = list(ply_folder_path.glob("*.ply"))
@@ -91,12 +98,14 @@ if __name__ == "__main__":
         / "siren"
         / "experiment_scripts"
         / "logs"
-        / "chair_base_seat_sorted_classes_ply"
-        / "metrics.json"
+        / "chair_complete_split_merged_ply"
+        / "metrics_new.json"
     )
-    metrics = compute_quality_metrics_split(
-        ply_folder_path, ground_truth_shape_folder, shape_ids, {"base", "seat", "full"}
-    )
-
+    try:
+        metrics = compute_quality_metrics_split(
+            ply_folder_path, ground_truth_shape_folder, shape_ids, {"arm", "back", "base", "seat", "full"}
+        )
+    except Exception as e:
+        pass
     with open(output_metrics_folder, "w") as f:
         json.dump(metrics, f)
