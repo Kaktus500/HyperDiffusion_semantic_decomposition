@@ -87,7 +87,7 @@ class MLP3D(nn.Module):
         for i in range(mlp_components): 
             self.mask.append(torch.zeros((1,1,hid_neur)).to(device='cuda'))
             self.mask[i][:,:,i*component_size:(i+1)*component_size] = 1
-
+        self.mask.append(torch.ones((1,1,128)).to(device='cuda'))
         self.layers = nn.ModuleList([])
         self.output_type = output_type
         self.use_leaky_relu = use_leaky_relu
