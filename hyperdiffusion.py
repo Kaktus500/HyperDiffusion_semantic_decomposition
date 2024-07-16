@@ -18,6 +18,7 @@ from hd_utils import (Config, calculate_fid_3d, generate_mlp_from_weights,
 from siren import sdf_meshing
 from siren.dataio import anime_read
 from siren.experiment_scripts.test_sdf import SDFDecoder
+from PIL import Image
 
 
 class HyperDiffusion(pl.LightningModule):
@@ -291,7 +292,7 @@ class HyperDiffusion(pl.LightningModule):
                         "generated_renders", imgs, step=self.current_epoch
                     )
 
-    def generate_meshes(self, x_0s, folder_name="meshes", info="0", res=64, level=0):
+    def generate_meshes(self, x_0s, folder_name="meshes", info="0", res=64, level=0, split_mlp: bool = False):
         x_0s = x_0s.view(len(x_0s), -1)
         curr_weights = Config.get("curr_weights")
         x_0s = x_0s[:, :curr_weights]
@@ -334,24 +335,47 @@ class HyperDiffusion(pl.LightningModule):
                         mesh = trimesh.Trimesh(v, f)
                         meshes.append(mesh)
                 else:
-                    v, f, sdf = sdf_meshing.create_mesh(
-                        sdf_decoder,
-                        effective_file_name,
-                        N=res,
-                        level=level
-                        if self.mlp_kwargs.output_type in ["occ", "logits"]
-                        else 0,
-                    )
-                    if (
-                        "occ" in self.mlp_kwargs.output_type
-                        or "logits" in self.mlp_kwargs.output_type
-                    ):
-                        tmp = copy.deepcopy(f[:, 1])
-                        f[:, 1] = f[:, 2]
-                        f[:, 2] = tmp
-                    sdfs.append(sdf)
-                    mesh = trimesh.Trimesh(v, f)
-                    meshes.append(mesh)
+                    if split_mlp:
+                        for j in range(3):
+                            v, f, sdf = sdf_meshing.create_mesh(
+                                sdf_decoder,
+                                effective_file_name,
+                                N=res,
+                                level=level
+                                if self.mlp_kwargs.output_type in ["occ", "logits"]
+                                else 0,
+                                freeze = True if j < 2 else False,
+                                part = j
+                            )
+                            if (
+                            "occ" in self.mlp_kwargs.output_type
+                            or "logits" in self.mlp_kwargs.output_type
+                            ):
+                                tmp = copy.deepcopy(f[:, 1])
+                                f[:, 1] = f[:, 2]
+                                f[:, 2] = tmp
+                            sdfs.append(sdf)
+                            mesh = trimesh.Trimesh(v, f)
+                            meshes.append(mesh)
+                    else: 
+                        v, f, sdf = sdf_meshing.create_mesh(
+                            sdf_decoder,
+                            effective_file_name,
+                            N=res,
+                            level=level
+                            if self.mlp_kwargs.output_type in ["occ", "logits"]
+                            else 0,
+                        )
+                        if (
+                            "occ" in self.mlp_kwargs.output_type
+                            or "logits" in self.mlp_kwargs.output_type
+                        ):
+                            tmp = copy.deepcopy(f[:, 1])
+                            f[:, 1] = f[:, 2]
+                            f[:, 2] = tmp
+                        sdfs.append(sdf)
+                        mesh = trimesh.Trimesh(v, f)
+                        meshes.append(mesh)
         sdfs = torch.stack(sdfs)
         return meshes, sdfs
 
@@ -641,7 +665,149 @@ class HyperDiffusion(pl.LightningModule):
 
         return metrics
 
+    def predict_step(self, *args, **kwargs):
+        """Sample multiple timesteps from the diffusion model."""
+        # if self.method == "hyper_3d":
+        #     x_0s = []
+        #     x_0s  = self.diff.ddim_sample_loop(
+        #         self.model, (16, *self.image_size[1:]), clip_denoised=False
+        #     )
+        #     # for sample in self.diff.ddim_sample_loop_progressive(
+        #     #     self.model, (1, *self.image_size[1:]), clip_denoised=False
+        #     # ):
+        #     #     x_0s.append(sample["sample"])
+        #     # x_0s = torch.vstack(x_0s)
+        #     x_0s = x_0s / self.cfg.normalization_factor
+
+        #     print(
+        #         "x_0s[0].stats",
+        #         x_0s.min().item(),
+        #         x_0s.max().item(),
+        #         x_0s.mean().item(),
+        #         x_0s.std().item(),
+        #     )
+        #     out_imgs = []
+        #     out_pc_imgs = []
+        #     os.makedirs(f"gen_meshes/{wandb.run.name}/denoising_steps")
+        #     # for i, x_0 in enumerate(x_0s):
+        #     #     if i % 90 != 0:
+        #     #         continue
+        #     #     mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
+        #     #     mesh = mesh[0]
+        #     #     if len(mesh.vertices) == 0:
+        #     #         continue
+        #     #     mesh.vertices *= 2
+        #     #     mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_{i}.obj")
+                
+        #     #     img, _ = render_mesh(mesh)
+        #     #     if len(mesh.vertices) > 0:
+        #     #         pc = torch.tensor(mesh.sample(2048))
+        #     #     else:
+        #     #         print("Empty mesh")
+        #     #         pc = torch.zeros(2048, 3)
+        #     #     pc_img, _ = render_mesh(pc)
+        #     #     Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_{i}.png")
+        #     #     out_imgs.append(img)
+        #     #     out_pc_imgs.append(pc_img)
+        #     for i, x_0 in enumerate(x_0s):
+        #         mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
+        #         mesh = mesh[0]
+        #         if len(mesh.vertices) == 0:
+        #             return
+        #         mesh.vertices *= 2
+        #         mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_{i}.obj")
+
+        #         img, _ = render_mesh(mesh)
+        #         if len(mesh.vertices) > 0:
+        #             pc = torch.tensor(mesh.sample(2048))
+        #         else:
+        #             print("Empty mesh")
+        #             pc = torch.zeros(2048, 3)
+        #         pc_img, _ = render_mesh(pc)
+        #         Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_{i}.png")
+        #         out_imgs.append(img)
+        #         out_pc_imgs.append(pc_img)
+                
+
+            # out_imgs = []
+            #     os.makedirs(f"gen_meshes/{wandb.run.name}")
+            #     for x_0 in tqdm(x_0s):
+            #         mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
+            #         mesh = mesh[0]
+            #         if len(mesh.vertices) == 0:
+            #             continue
+            #         mesh.vertices *= 2
+            #         mesh.export(f"gen_meshes/{wandb.run.name}/mesh_{len(out_imgs)}.obj")
+
+            #         # Scaling the chairs down so that they fit in the camera
+            #         if self.cfg.dataset == "03001627":
+            #             mesh.vertices *= 0.7
+            #         img, _ = render_mesh(mesh)
+
+            #         if len(mesh.vertices) > 0:
+            #             pc = torch.tensor(mesh.sample(2048))
+            #         else:
+            #             print("Empty mesh")
+            #             pc = torch.zeros(2048, 3)
+            #         pc_img, _ = render_mesh(pc)
+            #         out_imgs.append(img)
+            #         out_pc_imgs.append(pc_img)
+
     def test_step(self, *args, **kwargs):
+        if self.method == "hyper_3d":
+            x_0s = []
+            for sample in self.diff.ddim_sample_loop_progressive(
+                self.model, (1, *self.image_size[1:]), clip_denoised=False
+            ):
+                x_0s.append(sample["sample"])
+            x_0s = torch.vstack(x_0s)
+            x_0s = x_0s / self.cfg.normalization_factor
+
+            print(
+                "x_0s[0].stats",
+                x_0s.min().item(),
+                x_0s.max().item(),
+                x_0s.mean().item(),
+                x_0s.std().item(),
+            )
+            out_imgs = []
+            out_pc_imgs = []
+            os.makedirs(f"gen_meshes/{wandb.run.name}/denoising_steps")
+            for i, x_0 in enumerate(x_0s):
+                if i % 90 != 0:
+                    continue
+                mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700, split_mlp=True)
+                for part_idx, part_mesh in enumerate(mesh):
+                    if len(part_mesh.vertices) == 0:
+                        continue
+                    part_mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_{i}_{part_idx}.obj")
+
+                    img, _ = render_mesh(part_mesh)
+                    if len(part_mesh.vertices) > 0:
+                        pc = torch.tensor(part_mesh.sample(2048))
+                    else:
+                        print("Empty mesh")
+                        pc = torch.zeros(2048, 3)
+                    pc_img, _ = render_mesh(pc)
+                    Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_{i}_{part_idx}.png")
+                    out_imgs.append(img)
+                    out_pc_imgs.append(pc_img)
+            mesh, _ = self.generate_meshes(x_0s[-1].unsqueeze(0), None, res=700, split_mlp=True)
+            for part_idx, part_mesh in enumerate(mesh):
+                if len(part_mesh.vertices) == 0:
+                    return
+                part_mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_final_{part_idx}.obj")
+                img, _ = render_mesh(part_mesh)
+                if len(part_mesh.vertices) > 0:
+                    pc = torch.tensor(part_mesh.sample(2048))
+                else:
+                    print("Empty mesh")
+                    pc = torch.zeros(2048, 3)
+                pc_img, _ = render_mesh(pc)
+                Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_final.png")
+                out_imgs.append(img)
+                out_pc_imgs.append(pc_img)
+
         if self.cfg.calculate_metric_on_test:
             metric_fn = (
                 self.calc_metrics_4d
