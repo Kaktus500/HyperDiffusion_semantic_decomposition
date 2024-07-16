@@ -665,95 +665,7 @@ class HyperDiffusion(pl.LightningModule):
 
         return metrics
 
-    def predict_step(self, *args, **kwargs):
-        """Sample multiple timesteps from the diffusion model."""
-        # if self.method == "hyper_3d":
-        #     x_0s = []
-        #     x_0s  = self.diff.ddim_sample_loop(
-        #         self.model, (16, *self.image_size[1:]), clip_denoised=False
-        #     )
-        #     # for sample in self.diff.ddim_sample_loop_progressive(
-        #     #     self.model, (1, *self.image_size[1:]), clip_denoised=False
-        #     # ):
-        #     #     x_0s.append(sample["sample"])
-        #     # x_0s = torch.vstack(x_0s)
-        #     x_0s = x_0s / self.cfg.normalization_factor
-
-        #     print(
-        #         "x_0s[0].stats",
-        #         x_0s.min().item(),
-        #         x_0s.max().item(),
-        #         x_0s.mean().item(),
-        #         x_0s.std().item(),
-        #     )
-        #     out_imgs = []
-        #     out_pc_imgs = []
-        #     os.makedirs(f"gen_meshes/{wandb.run.name}/denoising_steps")
-        #     # for i, x_0 in enumerate(x_0s):
-        #     #     if i % 90 != 0:
-        #     #         continue
-        #     #     mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
-        #     #     mesh = mesh[0]
-        #     #     if len(mesh.vertices) == 0:
-        #     #         continue
-        #     #     mesh.vertices *= 2
-        #     #     mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_{i}.obj")
-                
-        #     #     img, _ = render_mesh(mesh)
-        #     #     if len(mesh.vertices) > 0:
-        #     #         pc = torch.tensor(mesh.sample(2048))
-        #     #     else:
-        #     #         print("Empty mesh")
-        #     #         pc = torch.zeros(2048, 3)
-        #     #     pc_img, _ = render_mesh(pc)
-        #     #     Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_{i}.png")
-        #     #     out_imgs.append(img)
-        #     #     out_pc_imgs.append(pc_img)
-        #     for i, x_0 in enumerate(x_0s):
-        #         mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
-        #         mesh = mesh[0]
-        #         if len(mesh.vertices) == 0:
-        #             return
-        #         mesh.vertices *= 2
-        #         mesh.export(f"gen_meshes/{wandb.run.name}/denoising_steps/mesh_{i}.obj")
-
-        #         img, _ = render_mesh(mesh)
-        #         if len(mesh.vertices) > 0:
-        #             pc = torch.tensor(mesh.sample(2048))
-        #         else:
-        #             print("Empty mesh")
-        #             pc = torch.zeros(2048, 3)
-        #         pc_img, _ = render_mesh(pc)
-        #         Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_{i}.png")
-        #         out_imgs.append(img)
-        #         out_pc_imgs.append(pc_img)
-                
-
-            # out_imgs = []
-            #     os.makedirs(f"gen_meshes/{wandb.run.name}")
-            #     for x_0 in tqdm(x_0s):
-            #         mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700)
-            #         mesh = mesh[0]
-            #         if len(mesh.vertices) == 0:
-            #             continue
-            #         mesh.vertices *= 2
-            #         mesh.export(f"gen_meshes/{wandb.run.name}/mesh_{len(out_imgs)}.obj")
-
-            #         # Scaling the chairs down so that they fit in the camera
-            #         if self.cfg.dataset == "03001627":
-            #             mesh.vertices *= 0.7
-            #         img, _ = render_mesh(mesh)
-
-            #         if len(mesh.vertices) > 0:
-            #             pc = torch.tensor(mesh.sample(2048))
-            #         else:
-            #             print("Empty mesh")
-            #             pc = torch.zeros(2048, 3)
-            #         pc_img, _ = render_mesh(pc)
-            #         out_imgs.append(img)
-            #         out_pc_imgs.append(pc_img)
-
-    def test_step(self, *args, **kwargs):
+    def diffusion_steps_visualization(self):
         if self.method == "hyper_3d":
             x_0s = []
             for sample in self.diff.ddim_sample_loop_progressive(
@@ -774,7 +686,9 @@ class HyperDiffusion(pl.LightningModule):
             out_pc_imgs = []
             os.makedirs(f"gen_meshes/{wandb.run.name}/denoising_steps")
             for i, x_0 in enumerate(x_0s):
-                if i % 90 != 0:
+                if i < 400:
+                    continue
+                if i % 20 != 0:
                     continue
                 mesh, _ = self.generate_meshes(x_0.unsqueeze(0), None, res=700, split_mlp=True)
                 for part_idx, part_mesh in enumerate(mesh):
@@ -804,10 +718,12 @@ class HyperDiffusion(pl.LightningModule):
                     print("Empty mesh")
                     pc = torch.zeros(2048, 3)
                 pc_img, _ = render_mesh(pc)
-                Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_final.png")
+                Image.fromarray(img).save(f"gen_meshes/{wandb.run.name}/denoising_steps/img_final_{part_idx}.png")
                 out_imgs.append(img)
                 out_pc_imgs.append(pc_img)
 
+    def test_step(self, *args, **kwargs):
+        self.diffusion_steps_visualization()
         if self.cfg.calculate_metric_on_test:
             metric_fn = (
                 self.calc_metrics_4d
